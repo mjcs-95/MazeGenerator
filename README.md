@@ -1,2 +1,3 @@
 # TFG
-Repositorio sobre Inteligencia artificial en Starcraft 2
+Repositorio sobre generacion Procedural
+(en construcción)
