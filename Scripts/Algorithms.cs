@@ -1,6 +1,7 @@
 ﻿using System; //ienumerable
 using System.Linq; //enumerable.repeat
 using System.Collections.Generic;
+using UnityEngine;
 
 namespace Algorithms{
 
@@ -16,7 +17,7 @@ namespace Algorithms{
 
         static public void initializeVariables(MazeGraph<T> G) {
             N = G.numVert();
-            g = new MazeGraph<T>(N);
+            g = new MazeGraph<T>(N,G.rows,G.cols);
             added = new bool[N];
             added[0] = true; //first node;
             edge = new Edge<T>(0, 0, default(T));
@@ -71,7 +72,7 @@ namespace Algorithms{
 
         static void initializeVariables(MazeGraph<T> G) {
             n = G.numVert();
-            g = new MazeGraph<T>(n);
+            g = new MazeGraph<T>(n, G.rows, G.cols);
             P = new Partition(n);
             queue = new PartialOrderedTree<Edge<T>>(n * n);
             for (int i = 0; i < n; ++i) {
@@ -108,7 +109,7 @@ namespace Algorithms{
 
         public static void InitializeVariables(MazeGraph<T> G) {
             unvisited = new List<int>(G.numVert());
-            g = new MazeGraph<T>(G.numVert());
+            g = new MazeGraph<T>(G.numVert(), G.rows, G.cols);
             for (int i = 0; i < G.numVert(); ++i) {
                 unvisited.Add(i);
             }
@@ -140,7 +141,7 @@ namespace Algorithms{
         static MazeGraph<T> g;
 
         public static void InitializeVariables(MazeGraph<T> G) {
-            g = new MazeGraph<T>(G.numVert());
+            g = new MazeGraph<T>(G.numVert(), G.rows, G.cols);
         }
 
         public static MazeGraph<T> Execute(MazeGraph<T> G) {
@@ -171,7 +172,7 @@ namespace Algorithms{
         static MazeGraph<T> g;
 
         public static void InitializeVariables(MazeGraph<T> G) {
-            g = new MazeGraph<T>(G.numVert());
+            g = new MazeGraph<T>(G.numVert(), G.rows, G.cols);
         }
 
         public static MazeGraph<T> Execute(MazeGraph<T> G) {
@@ -201,7 +202,7 @@ namespace Algorithms{
         static List<int> unvisited;
 
         public static void InitializeVariables(MazeGraph<T> G) {
-            g = new MazeGraph<T>(G.numVert());
+            g = new MazeGraph<T>(G.numVert(), G.rows, G.cols);
             unvisited = new List<int>(G.numVert());
             for (int i = 0; i < G.numVert(); ++i) {
                 unvisited.Add(i);
@@ -264,13 +265,8 @@ namespace Algorithms{
             } else {
                 if (height > width) {
                     DivideHorizontally(row, col, height, width);
-                } else if (width > height) {
-                    DivideVertically(row, col, height, width);
                 } else {
-                    switch (rand.Next(2)) {
-                        case 0: DivideVertically(row, col, height, width); break;
-                        case 1: DivideHorizontally(row, col, height, width); break;
-                    }
+                    DivideVertically(row, col, height, width);
                 }
             }
         }
@@ -285,7 +281,7 @@ namespace Algorithms{
                     int node = g.GetNode(r, c);
                     int southnode = g.GetSouth(r, c);
                     g.removeEdge(node, southnode);
-                    g.removeEdge(southnode, node);
+                    g.removeEdge(southnode, node);                    
                 }
             }
             Divide(row, col, divideCell + 1, width);
@@ -314,13 +310,13 @@ namespace Algorithms{
         static MazeGraph<T> g;
         static bool[] visited;
         static int counter;
-        static Random rand;
+        static System.Random rand;
 
         static public void initializeVariables(MazeGraph<T> G) {
             counter = G.numVert();
             g = new MazeGraph<T>(counter, G.rows, G.cols);
             visited = new bool[counter];
-            rand = new Random();
+            rand = new System.Random();
 
         }
 
@@ -381,20 +377,79 @@ namespace Algorithms{
     }
 
 
+	//adaptado de unlicensed ellers https://gist.github.com/grantslatton/6906668
+    static public class Ellers<T> where T : IComparable<T> {
+
+        static MazeGraph<T> g;
+        static System.Random rand;
+
+        public static void InitializeVariables(MazeGraph<T> G) {
+            g = new MazeGraph<T>(G.numVert(), G.rows, G.cols);
+            rand = new System.Random();
+        }
+
+        public static MazeGraph<T> Execute(MazeGraph<T> G) {
+            InitializeVariables(G);
+            int[] conjuntos = Enumerable.Range(0, g.cols).ToArray<int>();
+            for (int i = 0; i < g.rows; ++i) {
+                for (int j = 0; j < g.cols - 1; ++j) {
+                    if ((i == g.rows - 1 || rand.Next(2) == 1) && !g.hasEdge(g.GetNode(i, j), g.GetNode(i, j + 1))) {
+                        conjuntos[j + 1] = conjuntos[j];
+                        g.addEdge(g.GetNode(i, j), g.GetNode(i, j + 1), default(T));
+                        g.addEdge(g.GetNode(i, j + 1), g.GetNode(i, j), default(T));
+                    }
+                }
+                if (i < g.rows - 1) {
+                    int[] siguientesconjuntos = Enumerable.Range((i + 1) * g.cols, g.cols).ToArray<int>();
+                    HashSet<int> todoslosconjuntos = new HashSet<int>(conjuntos);
+                    HashSet<int> conjuntosmovidos = new HashSet<int>();
+                    while (!todoslosconjuntos.SetEquals(conjuntosmovidos)) {
+                        for (int j = 0; j < g.cols; ++j) {
+                            if (rand.Next(2) == 1 && !conjuntosmovidos.Contains(conjuntos[j])) {
+                                conjuntosmovidos.Add(conjuntos[j]);
+                                siguientesconjuntos[j] = conjuntos[j];
+                                g.addEdge(g.GetNode(i, j), g.GetNode(i + 1, j), default(T));
+                                g.addEdge(g.GetNode(i + 1, j), g.GetNode(i, j), default(T));
+                            }
+                        }
+                    }
+                    conjuntos = siguientesconjuntos;
+                }
+            }
+            return g;
+        }
+    }
 
     public class Partition {
         List<int> parent;
 
+        
+
         public Partition(int n) {
             parent = new List<int>(Enumerable.Repeat(-1, n));
         }
+
+        public Partition(Partition P) {
+            parent = new List<int>(P.parent);
+        }
+
+
+        public List<int> getParent() {
+            return new List<int>(parent);
+        }
+
+        public void setParent(List<int> p) {
+            parent = p.GetRange(0,p.Count);
+        }
+
+
 
         public void join(int a, int b) {
             if (parent[b] < parent[a])
                 parent[a] = b;
             else {
                 if (parent[a] == parent[b])
-                    parent[a]--;
+                    --parent[a];
                 parent[b] = a;
             }
         }
@@ -410,21 +465,6 @@ namespace Algorithms{
                 a = b;
             }
             return leader;
-        }
-    }
-
-    /*random positions algorithms*/
-    static public class RandPerm {
-        static public int[] randperm(int n) {
-            int[] indexes = new int[n];
-            double[] rvalues = new double[n];
-            System.Random rnd = new System.Random();
-            for (int i = 0; i < n; i++) {
-                indexes[i] = i;
-                rvalues[i] = rnd.NextDouble();
-            }
-            Array.Sort(rvalues, indexes);
-            return indexes;
         }
     }
 

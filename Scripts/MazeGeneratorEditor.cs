@@ -8,10 +8,17 @@ public class MazeGeneratorEditor : Editor
         DrawDefaultInspector();
         MazeGenerator myGenerator = (MazeGenerator) target;
         if (GUILayout.Button("Generate Maze")) {
-            myGenerator.tests();
+            myGenerator.GenerateMaze();
         }
         if (GUILayout.Button("Destroy Maze")) {
             myGenerator.DestroyMaze();
+        }
+        if (GUILayout.Button("Generato OBJ")) {
+            myGenerator.createOBJ();
+        }
+
+        if (GUILayout.Button("Execute Analysis")) {
+            myGenerator.executeAnalysis();
         }
     }
 }

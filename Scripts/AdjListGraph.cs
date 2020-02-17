@@ -120,57 +120,61 @@ public class MazeGraph<T>: AdjListGraph<T> where T : IComparable<T> {
     }
     
     public List<int> GetCoord(int n) {
-        List<int> coords = new List<int>();
-        coords.Add(n / cols);
-        coords.Add(n % cols);
-        return coords;
+        return new List<int>() { n / cols, n % cols };
     }
 
     public List<int> neighbors(int row, int col) {
         List<int> neighbors = new List<int>();
-        int neighbor;
-        neighbor = GetNorth(row, col);        
-        if (neighbor != -1) neighbors.Add(neighbor);
-        neighbor = GetSouth(row, col);
-        if (neighbor != -1) neighbors.Add(neighbor);
-        neighbor = GetEast(row, col);
-        if (neighbor != -1) neighbors.Add(neighbor);
-        neighbor = GetWest(row, col);
-        if (neighbor != -1) neighbors.Add(neighbor);
+        if(rows != -1 && cols != -1) {
+            int neighbor;
+            neighbor = GetNorth(row, col);
+            if (neighbor != -1) neighbors.Add(neighbor);
+            neighbor = GetSouth(row, col);
+            if (neighbor != -1) neighbors.Add(neighbor);
+            neighbor = GetEast(row, col);
+            if (neighbor != -1) neighbors.Add(neighbor);
+            neighbor = GetWest(row, col);
+            if (neighbor != -1) neighbors.Add(neighbor);
+
+        }
         return neighbors;
     }
 
     public List<int> UnconectedNeighbors(int row, int col) {
         List<int> neighbors = new List<int>();
         int n = GetNode(row, col);
-        if(n != -1){
-            int neighbor;
-            neighbor = GetNorth(row, col);
-            if (neighbor != -1 && !hasEdge(n, neighbor)) neighbors.Add(neighbor);
-            neighbor = GetSouth(row, col);
-            if (neighbor != -1 && !hasEdge(n, neighbor)) neighbors.Add(neighbor);
-            neighbor = GetEast(row, col);
-            if (neighbor != -1 && !hasEdge(n, neighbor)) neighbors.Add(neighbor);
-            neighbor = GetWest(row, col);
-            if (neighbor != -1 && !hasEdge(n, neighbor)) neighbors.Add(neighbor);
+        if (rows != -1 && cols != -1) {
+            if (n != -1) {
+                int neighbor;
+                neighbor = GetNorth(row, col);
+                if (neighbor != -1 && !hasEdge(n, neighbor)) neighbors.Add(neighbor);
+                neighbor = GetSouth(row, col);
+                if (neighbor != -1 && !hasEdge(n, neighbor)) neighbors.Add(neighbor);
+                neighbor = GetEast(row, col);
+                if (neighbor != -1 && !hasEdge(n, neighbor)) neighbors.Add(neighbor);
+                neighbor = GetWest(row, col);
+                if (neighbor != -1 && !hasEdge(n, neighbor)) neighbors.Add(neighbor);
+            }
         }
         return neighbors;
     }
 
     public List<int> ConectedNeighbors(int row, int col) {
         List<int> neighbors = new List<int>();
-        int n = GetNode(row, col);
-        if (n != -1) {
-            if (hasEdge(n, GetNorth(row, col))) neighbors.Add(GetNorth(row, col));
-            if (hasEdge(n, GetSouth(row, col))) neighbors.Add(GetSouth(row, col));
-            if (hasEdge(n, GetEast(row, col)))  neighbors.Add(GetEast(row, col));
-            if (hasEdge(n, GetWest(row, col)))  neighbors.Add(GetWest(row, col));
+        if (rows != -1 && cols != -1) {
+            int n = GetNode(row, col);
+            if (n != -1) {
+                if (hasEdge(n, GetNorth(row, col))) neighbors.Add(GetNorth(row, col));
+                if (hasEdge(n, GetSouth(row, col))) neighbors.Add(GetSouth(row, col));
+                if (hasEdge(n, GetEast(row, col))) neighbors.Add(GetEast(row, col));
+                if (hasEdge(n, GetWest(row, col))) neighbors.Add(GetWest(row, col));
+            }
         }
         return neighbors;
     }
 
     public int GetNode(int row,int col) {
-        if ( (0 <= row && row < rows) && (0 <= col && col < cols) ) {
+        if ((0 <= row && row < rows && rows != -1) && (0 <= col && col < cols && cols != -1)) {
             return row * cols + col;
         } else {
             return -1;
