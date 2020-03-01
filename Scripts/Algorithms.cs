@@ -1,7 +1,6 @@
 ﻿using System; //ienumerable
 using System.Linq; //enumerable.repeat
 using System.Collections.Generic;
-using UnityEngine;
 
 namespace Algorithms{
 
@@ -26,7 +25,7 @@ namespace Algorithms{
         }
 
         static List<Edge<T>> adjEdges(MazeGraph<T> G, int i) {
-            List< MazeGraph<T>.vertexCost > adj = G.Adjacents(i);
+            List< MazeGraph<T>.VertexCost> adj = G.Adjacents(i);
             List< Edge<T> > adjEdges_ = new List<Edge<T>>(adj.Count);
             for(int j = 0; j < adj.Count; ++j) {
                 adjEdges_.Add(new Edge<T>(i, adj[j].vertex, adj[j].cost));
@@ -76,7 +75,7 @@ namespace Algorithms{
             P = new Partition(n);
             queue = new PartialOrderedTree<Edge<T>>(n * n);
             for (int i = 0; i < n; ++i) {
-                List<MazeGraph<T>.vertexCost> adj = G.Adjacents(i);
+                List<MazeGraph<T>.VertexCost> adj = G.Adjacents(i);
                 for (int j = 0; j < adj.Count; ++j) {
                     queue.insert(new Edge<T>(i, adj[j].vertex, adj[j].cost));
                 }
@@ -117,19 +116,20 @@ namespace Algorithms{
 
         public static MazeGraph<T> Execute(MazeGraph<T> G) {
             InitializeVariables(G);
-            int idx = UnityEngine.Random.Range(0, unvisited.Count);
+            System.Random rand = new System.Random();
+            int idx = rand.Next(0, unvisited.Count);
             int current = unvisited[idx];
             unvisited.Remove(idx);
-            int count = 0;
-            while (unvisited.Count > 0 && count < 100000) {
-                MazeGraph<T>.vertexCost adj = G[current][UnityEngine.Random.Range(0, G[current].Count)];
+            //int count = 0;
+            while (unvisited.Count > 0) { //&& count < 100000) {
+                MazeGraph<T>.VertexCost adj = G[current][rand.Next(0, G[current].Count)];
                 if(unvisited.IndexOf(adj.vertex) != -1) {
                     g.addEdge(current, adj.vertex, adj.cost);
                     g.addEdge(adj.vertex, current, adj.cost);
                     unvisited.Remove(adj.vertex);
                 }
                 current = adj.vertex;
-                count++;
+                //count++;
             }
             return g;
         }
@@ -139,24 +139,27 @@ namespace Algorithms{
 
     static public class BinaryTree<T> where T : IComparable<T> {
         static MazeGraph<T> g;
+        static System.Random rand; 
 
         public static void InitializeVariables(MazeGraph<T> G) {
             g = new MazeGraph<T>(G.numVert(), G.rows, G.cols);
+            rand = new System.Random();
         }
 
         public static MazeGraph<T> Execute(MazeGraph<T> G) {
             InitializeVariables(G);
+            
             for(int i = 0; i < g.numVert(); ++i) {
-                List<MazeGraph<T>.vertexCost> neighbors = new List<MazeGraph<T>.vertexCost>();
-                List<MazeGraph<T>.vertexCost> adj = G[i];
-                foreach(MazeGraph<T>.vertexCost v in adj) {
+                List<MazeGraph<T>.VertexCost> neighbors = new List<MazeGraph<T>.VertexCost>();
+                List<MazeGraph<T>.VertexCost> adj = G[i];
+                foreach(MazeGraph<T>.VertexCost v in adj) {
                     if( v.vertex < i) {
                         neighbors.Add(v);
                     }
                 }
                 if(neighbors.Count > 0) {
-                    int idx = UnityEngine.Random.Range(0, neighbors.Count);
-                    MazeGraph<T>.vertexCost neighbor = neighbors[idx];
+                    int idx = rand.Next(0, neighbors.Count);
+                    MazeGraph<T>.VertexCost neighbor = neighbors[idx];
                     g.addEdge(i, neighbor.vertex, neighbor.cost);
                     g.addEdge(neighbor.vertex, i, neighbor.cost);
                 }
@@ -170,24 +173,26 @@ namespace Algorithms{
 
     static public class Sidewinder<T> where T : IComparable<T> {
         static MazeGraph<T> g;
+        static System.Random rand;
 
         public static void InitializeVariables(MazeGraph<T> G) {
             g = new MazeGraph<T>(G.numVert(), G.rows, G.cols);
+            rand = new System.Random();
         }
 
         public static MazeGraph<T> Execute(MazeGraph<T> G) {
             InitializeVariables(G);
             for (int i = 0; i < g.numVert(); ++i) {
-                List<MazeGraph<T>.vertexCost> neighbors = new List<MazeGraph<T>.vertexCost>();
-                List<MazeGraph<T>.vertexCost> adj = G[i];
-                foreach (MazeGraph<T>.vertexCost v in adj) {
+                List<MazeGraph<T>.VertexCost> neighbors = new List<MazeGraph<T>.VertexCost>();
+                List<MazeGraph<T>.VertexCost> adj = G[i];
+                foreach (MazeGraph<T>.VertexCost v in adj) {
                     if (v.vertex < i) {
                         neighbors.Add(v);
                     }
                 }
                 if (neighbors.Count > 0) {
-                    int idx = UnityEngine.Random.Range(0, neighbors.Count);
-                    MazeGraph<T>.vertexCost neighbor = neighbors[idx];
+                    int idx = rand.Next(0, neighbors.Count);
+                    MazeGraph<T>.VertexCost neighbor = neighbors[idx];
                     g.addEdge(i, neighbor.vertex, neighbor.cost);
                     g.addEdge(neighbor.vertex, i, neighbor.cost);
                 }
@@ -200,6 +205,7 @@ namespace Algorithms{
     static public class Wilson<T> where T : IComparable<T> {
         static MazeGraph<T> g;
         static List<int> unvisited;
+        static System.Random rand;
 
         public static void InitializeVariables(MazeGraph<T> G) {
             g = new MazeGraph<T>(G.numVert(), G.rows, G.cols);
@@ -207,27 +213,28 @@ namespace Algorithms{
             for (int i = 0; i < G.numVert(); ++i) {
                 unvisited.Add(i);
             }
+            rand = new System.Random();
         }
 
         public static MazeGraph<T> Execute(MazeGraph<T> G) {
             InitializeVariables(G);
-            int count = 0;
-            int idx = UnityEngine.Random.Range(0, unvisited.Count);
+            //int count = 0;
+            int idx = rand.Next(0, unvisited.Count);
             int first = unvisited[idx];
             unvisited.RemoveAt(idx);
-            while(unvisited.Count > 0 && count<500000) {
-                int current = unvisited[UnityEngine.Random.Range(0, unvisited.Count)];
+            while(unvisited.Count > 0) {//&& count<500000) {
+                int current = unvisited[rand.Next(0, unvisited.Count)];
                 List<int> path = new List<int>();
                 path.Add(current);
-                while (unvisited.IndexOf(current) != -1 && count < 500000) {
-                    current = G.Adjacents(current)[UnityEngine.Random.Range(0, G.Adjacents(current).Count)].vertex;
+                while (unvisited.IndexOf(current) != -1) {//&& count < 500000) {
+                    current = G.Adjacents(current)[rand.Next(0, G.Adjacents(current).Count)].vertex;
                     int pos = path.IndexOf(current);
                     if (pos == -1) {
                         path.Add(current);
                     } else {
                         path = path.GetRange(0, pos + 1);
                     }
-                    count++;
+                    //count++;
                 }
                 for (int i = 0; i < path.Count - 1; ++i) {
                     g.addEdge(path[i], path[i + 1], default(T));
@@ -259,7 +266,7 @@ namespace Algorithms{
             return g;
         }
 
-        public static void Divide(int row, int col, int height, int width) {
+        private static void Divide(int row, int col, int height, int width) {
             if (height <= 1 || width <= 1) {
                 return;
             } else {
@@ -271,7 +278,7 @@ namespace Algorithms{
             }
         }
 
-        public static void DivideHorizontally(int row, int col, int height, int width) {
+        private static void DivideHorizontally(int row, int col, int height, int width) {
             int divideCell = rand.Next(height - 1);
             int passage_at = rand.Next(width);
             for (int i = 0; i < width; ++i) {
@@ -288,7 +295,7 @@ namespace Algorithms{
             Divide(row + divideCell + 1, col, height - divideCell - 1, width);
         }
 
-        public static void DivideVertically(int row, int col, int height, int width) {
+        private static void DivideVertically(int row, int col, int height, int width) {
             int divideCell = rand.Next(width - 1);
             int passage_at = rand.Next(height);
             for (int i = 0; i < height; ++i) {
@@ -336,7 +343,7 @@ namespace Algorithms{
         private static int Kill(int current) {
             bool deadend = false;
             while (!deadend) {
-                List<int> noAdj = g.UnconectedNeighbors(current / g.cols, current % g.cols);
+                List<int> noAdj = g.UnconnectedNeighbors(current / g.cols, current % g.cols);
                 bool unconnected = false;
                 while (0 < noAdj.Count && !unconnected) {
                     int idx = rand.Next(noAdj.Count);
@@ -361,7 +368,7 @@ namespace Algorithms{
         private static int Hunt() {
             for (int i = 0; i < g.numVert(); ++i) {
                 if (!visited[i]) {
-                    List<int> neighbors = g.neighbors(i / g.cols, i % g.cols);
+                    List<int> neighbors = g.Neighbors(i / g.cols, i % g.cols);
                     foreach (int neighbor in neighbors) {
                         if (visited[neighbor]) {
                             g.addEdge(i, neighbor, default(T));

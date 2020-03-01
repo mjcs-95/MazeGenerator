@@ -26,7 +26,7 @@ public class ExportToOBj<T> where T : System.IComparable<T> {
     }
 
     public void GenerateObj(MazeGraph<T> G, bool ceil = false) {
-        using (System.IO.StreamWriter file = new System.IO.StreamWriter(@Application.dataPath+"/objeto1.obj")) {
+        using (System.IO.StreamWriter file = new System.IO.StreamWriter(@Application.dataPath+"/Resources/objeto1.obj")) {
             for (int i = 0; i < G.rows; ++i) {
                 for (int j = 0; j < G.cols; ++j) {
                     sb.Clear();

@@ -20,5 +20,9 @@ public class MazeGeneratorEditor : Editor
         if (GUILayout.Button("Execute Analysis")) {
             myGenerator.executeAnalysis();
         }
+
+        if (GUILayout.Button("Execute Time Analysis")) {
+            myGenerator.executeTimeAnalysis();
+        }
     }
 }
