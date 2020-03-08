@@ -2,10 +2,7 @@
 using System.Linq; //enumerable.repeat
 using System.Collections.Generic;
 
-namespace Algorithms{
-
-    
-
+namespace Algorithms{    
     static public class Prim<T> where T: IComparable<T>{
         static int N;
         static Edge<T> edge;
@@ -116,7 +113,7 @@ namespace Algorithms{
 
         public static MazeGraph<T> Execute(MazeGraph<T> G) {
             InitializeVariables(G);
-            System.Random rand = new System.Random();
+            Random rand = new Random();
             int idx = rand.Next(0, unvisited.Count);
             int current = unvisited[idx];
             unvisited.Remove(idx);
@@ -139,11 +136,11 @@ namespace Algorithms{
 
     static public class BinaryTree<T> where T : IComparable<T> {
         static MazeGraph<T> g;
-        static System.Random rand; 
+        static Random rand; 
 
         public static void InitializeVariables(MazeGraph<T> G) {
             g = new MazeGraph<T>(G.numVert(), G.rows, G.cols);
-            rand = new System.Random();
+            rand = new Random();
         }
 
         public static MazeGraph<T> Execute(MazeGraph<T> G) {
@@ -153,7 +150,7 @@ namespace Algorithms{
                 List<MazeGraph<T>.VertexCost> neighbors = new List<MazeGraph<T>.VertexCost>();
                 List<MazeGraph<T>.VertexCost> adj = G[i];
                 foreach(MazeGraph<T>.VertexCost v in adj) {
-                    if( v.vertex < i) {
+                    if( v.vertex > i) {
                         neighbors.Add(v);
                     }
                 }
@@ -182,22 +179,21 @@ namespace Algorithms{
 
         public static MazeGraph<T> Execute(MazeGraph<T> G) {
             InitializeVariables(G);
-            for (int i = 0; i < g.numVert(); ++i) {
-                List<MazeGraph<T>.VertexCost> neighbors = new List<MazeGraph<T>.VertexCost>();
-                List<MazeGraph<T>.VertexCost> adj = G[i];
-                foreach (MazeGraph<T>.VertexCost v in adj) {
-                    if (v.vertex < i) {
-                        neighbors.Add(v);
-                    }
+            for (int i = 0; i < g.rows; ++i) {
+                List<int> group = new List<int>();
+                for (int j = 0; j < g.cols; ++j) {
+                    group.Add(j);
+                    if (!(j < g.cols - 1) || ((i < g.rows - 1) && rand.Next(2) == 0)) {
+                        int connectAt = group[rand.Next(0, group.Count)];
+                        g.addEdge(g.GetNode(i, connectAt), g.GetNode(i+1, connectAt), default(T));
+                        g.addEdge(g.GetNode(i+1, connectAt), g.GetNode(i, connectAt), default(T));
+                        group.Clear();
+                    } else {
+                        g.addEdge(g.GetNode(i, j), g.GetEast(i, j), default(T));
+                        g.addEdge(g.GetEast(i, j), g.GetNode(i, j), default(T));
+                    }                              
                 }
-                if (neighbors.Count > 0) {
-                    int idx = rand.Next(0, neighbors.Count);
-                    MazeGraph<T>.VertexCost neighbor = neighbors[idx];
-                    g.addEdge(i, neighbor.vertex, neighbor.cost);
-                    g.addEdge(neighbor.vertex, i, neighbor.cost);
-                }
-
-            }
+            }            
             return g;
         }
     }
@@ -249,7 +245,7 @@ namespace Algorithms{
 
     static public class RecursiveDivision<T> where T : IComparable<T> {
         static MazeGraph<T> g;
-        static System.Random rand;
+        static Random rand;
 
         //If function is called only with 1 parameter, it means you must find the number of row  
         //by find a cell that travels to the north,indicated by an adjacent vertex whose ID be greater than
@@ -257,7 +253,7 @@ namespace Algorithms{
         //at least 2, otherwise it could cause unexpected behavior.
         public static void InitializeVariables(MazeGraph<T> G) {
             g = new MazeGraph<T>(G);
-            rand = new System.Random();
+            rand = new Random();
         }
 
         public static MazeGraph<T> Execute(MazeGraph<T> G) {
@@ -286,7 +282,7 @@ namespace Algorithms{
                     int r = row + divideCell;
                     int c = col + i;
                     int node = g.GetNode(r, c);
-                    int southnode = g.GetSouth(r, c);
+                    int southnode = g.GetNode(r+1, c);
                     g.removeEdge(node, southnode);
                     g.removeEdge(southnode, node);                    
                 }
@@ -324,7 +320,6 @@ namespace Algorithms{
             g = new MazeGraph<T>(counter, G.rows, G.cols);
             visited = new bool[counter];
             rand = new System.Random();
-
         }
 
         static public MazeGraph<T> Execute(MazeGraph<T> G) {
@@ -388,11 +383,11 @@ namespace Algorithms{
     static public class Ellers<T> where T : IComparable<T> {
 
         static MazeGraph<T> g;
-        static System.Random rand;
+        static Random rand;
 
         public static void InitializeVariables(MazeGraph<T> G) {
             g = new MazeGraph<T>(G.numVert(), G.rows, G.cols);
-            rand = new System.Random();
+            rand = new Random();
         }
 
         public static MazeGraph<T> Execute(MazeGraph<T> G) {
@@ -489,6 +484,4 @@ namespace Algorithms{
         }
 
     }
-
-
 }

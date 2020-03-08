@@ -6,6 +6,7 @@ public class MazeGenerator : MonoBehaviour {
     public int rows;
     public int cols;
     
+
     static private MazeGraph<int> G;
     private GameObject[] mazeCells;
     StatComparison<int> Test;
@@ -19,9 +20,13 @@ public class MazeGenerator : MonoBehaviour {
         exporter.GenerateObj(G);
     }
 
+
+    public Material mat;// = new Material(Shader.Find("Standard"));
+
     public void Generate3dMaze() {
-        /*Maze creator*/
-        Mesh model = Instantiate(Resources.Load("objeto1"), transform) as Mesh;
+        //Mesh model = Instantiate(Resources.Load("objeto1"), transform) as Mesh;        
+        GameObject model = Instantiate(Resources.Load("objeto1"), transform) as GameObject;
+        model.GetComponentInChildren<MeshRenderer>().material = mat;                
     }
 
     // Start is called before the first frame update

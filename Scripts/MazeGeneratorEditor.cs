@@ -13,7 +13,7 @@ public class MazeGeneratorEditor : Editor
         if (GUILayout.Button("Destroy Maze")) {
             myGenerator.DestroyMaze();
         }
-        if (GUILayout.Button("Generato OBJ")) {
+        if (GUILayout.Button("Generar OBJ")) {
             myGenerator.createOBJ();
         }
 

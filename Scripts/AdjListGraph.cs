@@ -214,11 +214,11 @@ public class MazeGraph<T>: AdjListGraph<T> where T : IComparable<T> {
     }
 
     public int GetNorth(int row, int col) {
-        return GetNode(row - 1, col);
+        return GetNode(row + 1, col);
     }
 
     public int GetSouth(int row, int col) {
-        return GetNode(row + 1, col);
+        return GetNode(row - 1, col);
     }
 
     public int GetEast(int row, int col) {
