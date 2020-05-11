@@ -118,20 +118,20 @@ public class MazeGraph<T>: AdjListGraph<T> where T : IComparable<T> {
                 int cost = rand.Next(1, 10);
                 //Random values to use with prim and kruskal but it could be 1; Still not undirected
                 if (j < cols - 1) {
-                    G.addEdge(aux, aux + 1, rand.Next(1, n) ); //Random.Range(1, n)
-                    G.addEdge(aux + 1, aux, rand.Next(1, n));
+                    G.addEdge(aux, aux + 1, 1 ); //Random.Range(1, n)
+                    G.addEdge(aux + 1, aux, 1);
                 }// North
                 if (i > 0) {
-                    G.addEdge(aux, aux - cols, rand.Next(1, n)); // west
-                    G.addEdge(aux - cols, aux, rand.Next(1, n)); // west
+                    G.addEdge(aux, aux - cols, 1); // west
+                    G.addEdge(aux - cols, aux, 1); // west
                 }
                 if (j > 0) {
-                    G.addEdge(aux, aux - 1, rand.Next(1, n)); // South
-                    G.addEdge(aux - 1, aux, rand.Next(1, n)); // South
+                    G.addEdge(aux, aux - 1, 1); // South
+                    G.addEdge(aux - 1, aux, 1); // South
                 }
                 if (i < rows - 1) {
-                    G.addEdge(aux, aux + cols, rand.Next(1, n)); // East
-                    G.addEdge(aux + cols, aux, rand.Next(1, n)); // East
+                    G.addEdge(aux, aux + cols, 1); // East
+                    G.addEdge(aux + cols, aux, 1); // East
                 }
             }
         }

@@ -10,7 +10,7 @@ public class ExportToOBj<T> where T : System.IComparable<T> {
     System.Numerics.Vector3[] V;
     System.Numerics.Vector3 n;
     byte[,] pos;
-
+    float xsize, ysize;
     public ExportToOBj() {
         sb = new StringBuilder();
         V = new System.Numerics.Vector3[8];
@@ -26,6 +26,8 @@ public class ExportToOBj<T> where T : System.IComparable<T> {
     }
 
     public void GenerateObj(MazeGraph<T> G, bool ceil = false) {
+        xsize = G.rows;
+        ysize = G.cols;
         using (System.IO.StreamWriter file = new System.IO.StreamWriter(@Application.dataPath+"/Resources/objeto1.obj")) {
             for (int i = 0; i < G.rows; ++i) {
                 for (int j = 0; j < G.cols; ++j) {
@@ -70,7 +72,7 @@ public class ExportToOBj<T> where T : System.IComparable<T> {
 
 
 
-    private void WriteWall(System.Numerics.Vector3[] V, int f) {
+    private void WriteWall(System.Numerics.Vector3[] V, int f){
         for (int k = 0; k < 4; ++k) {
             sb.Append(string.Format(v_String, V[pos[f,k]].X, V[pos[f, k]].Y, V[pos[f, k]].Z));
             sb.Append(string.Format(vtString, V[pos[f, k]].X, V[pos[f, k]].Y));
