@@ -16,12 +16,12 @@ public class ExportToOBj<T> where T : System.IComparable<T> {
         V = new System.Numerics.Vector3[8];
         n = System.Numerics.Vector3.Zero;
         pos = new byte[6, 4] {
-            { 0,1,2,3 },    //F
-            { 2,3,6,7 },    //N
-            { 0,1,4,5 },    //S
-            { 1,3,5,7 },    //E
-            { 0,2,4,6 },    //W
-            { 4,5,6,7 }     //C
+            { 0,1,2,3 },    //0 - Floor
+            { 2,3,6,7 },    //1 - North
+            { 0,1,4,5 },    //2 - South
+            { 1,3,5,7 },    //3 - East
+            { 0,2,4,6 },    //4 - West
+            { 4,5,6,7 }     //5 - Ceil
         };
     }
 
@@ -75,7 +75,13 @@ public class ExportToOBj<T> where T : System.IComparable<T> {
     private void WriteWall(System.Numerics.Vector3[] V, int f){
         for (int k = 0; k < 4; ++k) {
             sb.Append(string.Format(v_String, V[pos[f,k]].X, V[pos[f, k]].Y, V[pos[f, k]].Z));
-            sb.Append(string.Format(vtString, V[pos[f, k]].X, V[pos[f, k]].Y));
+            if (f == 0 || f == 5) {
+                sb.Append(string.Format(vtString, V[pos[f, k]].X, V[pos[f, k]].Y));
+            } else if (f == 1 || f == 2) {
+                sb.Append(string.Format(vtString, V[pos[f, k]].Y, V[pos[f, k]].Z));
+            } else if (f == 3 || f == 4) {
+                sb.Append(string.Format(vtString, V[pos[f, k]].X, V[pos[f, k]].Z));
+            }
         }
         n = CalculateTriangleNormal(V[pos[f,0]], V[pos[f,1]], V[pos[f,2]]);
         sb.Append(string.Format(vnString, n.X, n.Y, n.Z));
