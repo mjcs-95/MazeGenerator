@@ -1,21 +1,16 @@
 ﻿using UnityEditor;
 using UnityEngine;
 
-public class MazeGenerator : MonoBehaviour {
-
+public class MazeGenerator : MonoBehaviour 
+{
     public int rows;
     public int cols;
-    
-
-    static private MazeGraph<int> G;
-    private GameObject[] mazeCells;
-    StatComparison<int> Test;
-
 
     public enum Algorithm { AldousBroder, BinaryTree, Ellers, HuntAndKill,Kruskall, Prim, RecursiveDivision, Sidewinder, Wilson }
     public Algorithm generationAlgorithm;
 
-    public void createOBJ() {
+    public void createOBJ() 
+    {
         ExportToOBj<int> exporter = new ExportToOBj<int>();
         exporter.GenerateObj(G);
     }
@@ -23,33 +18,41 @@ public class MazeGenerator : MonoBehaviour {
 
     public Material mat;// = new Material(Shader.Find("Standard"));
 
-    public void Generate3dMaze() {
+
+    static private MazeGraph<int> G;
+    private GameObject[] mazeCells;
+    StatComparison<int> Test;
+
+
+    public void Generate3dMaze() 
+    {
         //Mesh model = Instantiate(Resources.Load("objeto1"), transform) as Mesh;        
         GameObject model = Instantiate(Resources.Load("objeto1"), transform) as GameObject;
         model.GetComponentInChildren<MeshRenderer>().material = mat;                
     }
 
     // Start is called before the first frame update
-    void Start() {
+    void Start() 
+    {
         GenerateMaze();
     }
 
     // Update is called once per frame
-    void Update() {
-    }
+    void Update() {}
 
-    public void DestroyMaze() {
-        while (transform.childCount > 0) {
-            if (Application.isEditor) {
+    public void DestroyMaze() 
+    {
+        while (transform.childCount > 0) 
+            if (Application.isEditor)
                 DestroyImmediate(transform.GetChild(0).gameObject);
-            } else {
+            else
                 Destroy(transform.GetChild(0).gameObject);
-            }
-        }
     }
 
-    public void executeAlgorithm() {
-        switch (generationAlgorithm) {
+    public void executeAlgorithm() 
+    {
+        switch (generationAlgorithm) 
+        {
             case Algorithm.AldousBroder:
                 G = Algorithms.AldousBroder<int>.Execute(G);
                 break;
@@ -80,31 +83,24 @@ public class MazeGenerator : MonoBehaviour {
         }
     }
 
-    public void GenerateMaze() {
+    public void GenerateMaze() 
+    {
         DestroyMaze();
-        G = MazeGraph<int>.createNoWallsGraph4(rows,cols);
-        if (UnitaryTests<int>.TestConnectedGridGraph(G)) {
-            Debug.Log("G is a No wall's grid");
-        } else {
-            Debug.Log("G is Not a no wall's grid");
-        }
+        G = MazeGraph<int>.CreateNoWallsGraph4(rows,cols);
         executeAlgorithm();
-        if (UnitaryTests<int>.TestGraphIsTree(G)) {
-            Debug.Log("G is a perfect maze");
-        } else {
-            Debug.Log("G is Not a perfect maze");
-        }
         createOBJ();
         AssetDatabase.Refresh();
         Generate3dMaze();
     }
 
-    public void executeTimeAnalysis() {        
+    public void executeTimeAnalysis() 
+    {        
         Test = new StatComparison<int>();
         Test.TimeComparison();
     }
 
-    public void executeAnalysis() {
+    public void executeAnalysis() 
+    {
         Test = new StatComparison<int>();
         Test.executeCharacteristicsAnalysis();
     }

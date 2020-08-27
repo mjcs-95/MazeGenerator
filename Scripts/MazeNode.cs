@@ -6,13 +6,15 @@ public struct GraphNode: IComparable<GraphNode>
     int row;
     int col;
 
-    public GraphNode(int i, int r, int c) {
+    public GraphNode(int i, int r, int c) 
+    {
         id = i;
         row = r;
         col = c;
     }
 
-    public int CompareTo(GraphNode other) {
+    public int CompareTo(GraphNode other) 
+    {
         return id.CompareTo(other.id);
     }
 }

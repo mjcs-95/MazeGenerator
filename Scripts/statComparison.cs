@@ -10,70 +10,64 @@ public class StatComparison<T> where T : IComparable<T>
     public MazeGenerator.Algorithm generationAlgorithm;
 
 
-    public StatComparison() {
-    }
+    public StatComparison() {}
 
     //Deadends
-    private int deadEnds(MazeGraph<T> g){
+    private int deadEnds(MazeGraph<T> g)
+    {
         int deadends = 0;
-        for (int i = 0; i < g.rows; ++i) {
-            for (int j = 0; j < g.cols - 1; ++j) {
-                if (g.ConnectedNeighbors(i, j).Count == 1) {
+        for (int i = 0; i < g.rows; ++i)
+            for (int j = 0; j < g.cols - 1; ++j)
+                if (g.ConnectedNeighbors(i, j).Count == 1)
                     ++deadends;
-                }
-            }
-        }        
         return deadends;
     }
 
-    public float deadendsPercentage(MazeGraph<T> g) {
-        return 100.0f * deadEnds(g) / (g.rows * g.cols);
+    public float deadendsPercentage(MazeGraph<T> g) 
+    { 
+        return 100.0f * deadEnds(g) / (g.rows * g.cols); 
     }
 
     //interSections
-    private int interSections(MazeGraph<T> g) {
+    private int interSections(MazeGraph<T> g) 
+    {
         int intersections = 0;
-        for (int i = 0; i < g.rows; ++i) {
-            for (int j = 0; j < g.cols - 1; ++j) {
-                if (2 < g.ConnectedNeighbors(i, j).Count) {
+        for (int i = 0; i < g.rows; ++i)
+            for (int j = 0; j < g.cols - 1; ++j)
+                if (2 < g.ConnectedNeighbors(i, j).Count)
                     ++intersections;
-                }
-            }
-        }
         return intersections;
     }
 
-    public float interSectionsPercentage(MazeGraph<T> g) {
+    public float interSectionsPercentage(MazeGraph<T> g) 
+    {
         return 100.0f * interSections(g) / (g.rows * g.cols);
     }
 
     //LongestPath
-    public float LongestPath(MazeGraph<T> G) {
+    public float LongestPath(MazeGraph<T> G) 
+    {
         bool[] visited;
         KeyValuePair<KeyValuePair<int, int>, int> LP = new KeyValuePair<KeyValuePair<int, int>, int>();
         List<KeyValuePair<int, int>> adycost = new List<KeyValuePair<int, int>>();
-        for (int i = 0; i < G.rows; ++i) {
+        for (int i = 0; i < G.rows; ++i)
             for (int j = 0; j < G.rows; ++j) {
-                visited = new bool[G.numVert()];
+                visited = new bool[G.NumVert];
                 visited[G.GetNode(i, j)] = true;
-                foreach (var n in G.ConnectedNeighbors(i, j)) {
+                foreach (var n in G.ConnectedNeighbors(i, j))
                     adycost.Add(new KeyValuePair<int, int>(n, 1));
-                }
-                while (adycost.Count != 0) {
+                while (adycost.Count != 0) 
+                {
                     KeyValuePair<int, int> c = adycost[0];
                     visited[c.Key] = true;
-                    if (LP.Value < c.Value) {
+                    if (LP.Value < c.Value)
                         LP = new KeyValuePair<KeyValuePair<int, int>, int>(new KeyValuePair<int, int>(G.GetNode(i, j), c.Key), c.Value);
-                    }
-                    foreach (var n in G.ConnectedNeighbors(G.GetCoord(c.Key)[0], G.GetCoord(c.Key)[1])) {
-                        if (!visited[n]) {
+                    foreach (var n in G.ConnectedNeighbors(G.GetCoord(c.Key)[0], G.GetCoord(c.Key)[1]))
+                        if (!visited[n])
                             adycost.Add(new KeyValuePair<int, int>(n, c.Value + 1));
-                        }
-                    }
                     adycost.RemoveAt(0);
                 }
             }
-        }
         return 100.0f * LP.Value / (G.rows * G.cols);
     }
 
@@ -81,40 +75,38 @@ public class StatComparison<T> where T : IComparable<T>
     //Directness
     public float Directness(MazeGraph<T> g) {
         int direct = 0;
-        for (int i = 0; i < g.rows; ++i) {
-            for (int j = 0; j < g.rows; ++j) {
+        for (int i = 0; i < g.rows; ++i) 
+            for (int j = 0; j < g.rows; ++j) 
+            {
                 bool n = g.hasEdge(g.GetNode(i, j), g.GetNode(i + 1, j));
                 bool s = g.hasEdge(g.GetNode(i, j), g.GetNode(i - 1, j));
                 bool e = g.hasEdge(g.GetNode(i, j), g.GetNode(i, j + 1));
                 bool w = g.hasEdge(g.GetNode(i, j), g.GetNode(i, j - 1));
-                if ( ((n && s) && !w && !e) || ((e && w) && !n && !s))  {
+                if ( ((n && s) && !w && !e) || ((e && w) && !n && !s))
                     ++direct;
-                }
             }
-        }
         return 100.0f * direct / (g.rows * g.cols);
     }
 
     //Twistiness
-    public float Twistiness(MazeGraph<T> g) {
+    public float Twistiness(MazeGraph<T> g) 
+    {
         int twists = 0;
-        for (int i = 0; i < g.rows; ++i) {
+        for (int i = 0; i < g.rows; ++i)
             for (int j = 0; j < g.rows; ++j) {
                 bool n = g.hasEdge(g.GetNode(i, j), g.GetNode(i + 1, j));
                 bool s = g.hasEdge(g.GetNode(i, j), g.GetNode(i - 1, j));
                 bool e = g.hasEdge(g.GetNode(i, j), g.GetNode(i, j + 1));
                 bool w = g.hasEdge(g.GetNode(i, j), g.GetNode(i, j - 1));
-                if ((n & !s & (e || w)) || (!n & s & (e || w)) ||
-                    (!w & e & (n || s)) || (w & !e & (n || s)) ){
+                if ((n & !s & (e || w)) || (!n & s & (e || w)) || (!w & e & (n || s)) || (w & !e & (n || s)) )
                     ++twists;
-                }
             }
-        }
         return 100.0f * twists / (g.rows * g.cols);
     }
 
     public void executeCharacteristicsAnalysis() {
-        using (System.IO.StreamWriter file = new System.IO.StreamWriter(@Application.dataPath + "/analisis.csv")) {
+        using (System.IO.StreamWriter file = new System.IO.StreamWriter(@Application.dataPath + "/analisis.csv")) 
+        {
             StatComparison<int> Test = new StatComparison<int>();
             StringBuilder sb = new StringBuilder();
             sb.Clear();
@@ -122,13 +114,15 @@ public class StatComparison<T> where T : IComparable<T>
             file.Write(sb.ToString());
             int rows = 10;
             int cols = 10;
-            for (int i = 0; i < 100; i++) {
+            for (int i = 0; i < 100; i++) 
+            {
                 TimeSpan stop;
                 TimeSpan start = new TimeSpan(DateTime.Now.Ticks);
                 // codigo a medir
-                foreach (MazeGenerator.Algorithm it in Enum.GetValues(typeof(MazeGenerator.Algorithm))) {
+                foreach (MazeGenerator.Algorithm it in Enum.GetValues(typeof(MazeGenerator.Algorithm))) 
+                {
                     sb.Clear();
-                    G = MazeGraph<int>.createNoWallsGraph4(rows, cols);
+                    G = MazeGraph<int>.CreateNoWallsGraph4(rows, cols);
                     var generationAlgorithm = it;
                     executeAlgorithm();
                     sb.Append(it + ",");
@@ -144,11 +138,12 @@ public class StatComparison<T> where T : IComparable<T>
                 Debug.Log("Iteracion " + i + " , Tiempo(s) : " + stop.Subtract(start).TotalMilliseconds / 1000.0f);
             }
         }
-
     }
 
-    public void TimeComparison() {
-        using (System.IO.StreamWriter file = new System.IO.StreamWriter(@Application.dataPath + "/Tiempos.csv")) {
+    public void TimeComparison() 
+    {
+        using (System.IO.StreamWriter file = new System.IO.StreamWriter(@Application.dataPath + "/Tiempos.csv")) 
+        {
             StatComparison<int> Test = new StatComparison<int>();
             StringBuilder sb = new StringBuilder();
             sb.Clear();
@@ -161,10 +156,12 @@ public class StatComparison<T> where T : IComparable<T>
             //int cols = size;
             TimeSpan stop;
             TimeSpan start;
-            while (size <= maxsize) {
-                G = MazeGraph<int>.createNoWallsGraph4(size, size);
-                for (int i = 0; i < 10; i++) {
-                    foreach (MazeGenerator.Algorithm it in Enum.GetValues(typeof(MazeGenerator.Algorithm))) {
+            while (size <= maxsize) 
+            {
+                G = MazeGraph<int>.CreateNoWallsGraph4(size, size);
+                for (int i = 0; i < 10; i++)
+                    foreach (MazeGenerator.Algorithm it in Enum.GetValues(typeof(MazeGenerator.Algorithm))) 
+                    {
                         sb.Clear();                        
                         generationAlgorithm = it;
 
@@ -175,7 +172,6 @@ public class StatComparison<T> where T : IComparable<T>
                         sb.Append(it + "," + (size+"x"+size) + "," + stop.Subtract(start).TotalMilliseconds.ToString("00.000", CultureInfo.InvariantCulture) + "\n");
                         file.Write(sb.ToString());
                     }
-                }
                 size = size + inc;
             }
         }
@@ -184,8 +180,10 @@ public class StatComparison<T> where T : IComparable<T>
 
 
 
-    public void executeAlgorithm() {        
-        switch (generationAlgorithm) {
+    public void executeAlgorithm() 
+    {        
+        switch (generationAlgorithm) 
+        {
             case MazeGenerator.Algorithm.AldousBroder:
                 //G = 
                 Algorithms.AldousBroder<int>.Execute(G);
