@@ -3,7 +3,7 @@ Procedural generated mazes
 
 The classes MazeGenerator and MazeGeneratorEditor connect the maze generator with the Unity3d Editor.
 Class Diagram:
-![Example](ClassDiagram.png)
+![Example](ClassDiagram.jpg)
 
 
 
