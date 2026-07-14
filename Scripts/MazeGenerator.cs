@@ -1,4 +1,8 @@
-﻿using UnityEditor;
+﻿using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Reflection;
+using UnityEditor;
 using UnityEngine;
 
 public class MazeGenerator : MonoBehaviour 
@@ -49,45 +53,35 @@ public class MazeGenerator : MonoBehaviour
                 Destroy(transform.GetChild(0).gameObject);
     }
 
-    public void executeAlgorithm() 
+    static public readonly Dictionary<Algorithm, Func<MazeGraph<int>, MazeGraph<int>>> AlgorithmMap = new()
     {
-        switch (generationAlgorithm) 
-        {
-            case Algorithm.AldousBroder:
-                G = Algorithms.AldousBroder<int>.Execute(G);
-                break;
-            case Algorithm.BinaryTree:
-                G = Algorithms.BinaryTree<int>.Execute(G);
-                break;
-            case Algorithm.Ellers:
-                G = Algorithms.Ellers<int>.Execute(G);
-                break;
-            case Algorithm.HuntAndKill:
-                G = Algorithms.HuntAndKill<int>.Execute(G);
-                break;
-            case Algorithm.Kruskall:
-                G = Algorithms.Kruskall<int>.Execute(G);
-                break;
-            case Algorithm.Prim:
-                G = Algorithms.Prim<int>.Execute(G);
-                break;
-            case Algorithm.RecursiveDivision:
-                G = Algorithms.RecursiveDivision<int>.Execute(G);
-                break;
-            case Algorithm.Sidewinder:
-                G = Algorithms.Sidewinder<int>.Execute(G);
-                break;
-            case Algorithm.Wilson:
-                G = Algorithms.Wilson<int>.Execute(G);
-                break;
-        }
+        { Algorithm.AldousBroder, Algorithms.AldousBroder<int>.Execute },
+        { Algorithm.BinaryTree, Algorithms.BinaryTree<int>.Execute },
+        { Algorithm.Ellers, Algorithms.Ellers<int>.Execute },
+        { Algorithm.HuntAndKill, Algorithms.HuntAndKill<int>.Execute },
+        { Algorithm.Kruskall, Algorithms.Kruskall<int>.Execute },
+        { Algorithm.Prim, Algorithms.Prim<int>.Execute },
+        { Algorithm.RecursiveDivision, Algorithms.RecursiveDivision<int>.Execute },
+        { Algorithm.Sidewinder, Algorithms.Sidewinder<int>.Execute },
+        { Algorithm.Wilson, Algorithms.Wilson<int>.Execute }
+    };
+
+    public void executeAlgorithm()
+    {
+        if (AlgorithmMap.TryGetValue(generationAlgorithm, out var executeFunc))
+            G = executeFunc(G);
+        else
+            UnityEngine.Debug.LogError($"Algoritmo {generationAlgorithm} no está implementado en el diccionario.");
     }
 
     public void GenerateMaze() 
     {
         DestroyMaze();
         G = MazeGraph<int>.CreateNoWallsGraph4(rows,cols);
+        Stopwatch stopwatch = Stopwatch.StartNew();
         executeAlgorithm();
+        stopwatch.Stop();
+        UnityEngine.Debug.Log($"Tiempo: {stopwatch.Elapsed.TotalMilliseconds:F3} ms");
         createOBJ();
         AssetDatabase.Refresh();
         Generate3dMaze();
