@@ -1,487 +1,623 @@
 ﻿using System; //ienumerable
-using System.Linq; //enumerable.repeat
 using System.Collections.Generic;
+using System.Linq; //enumerable.repeat
 
-namespace Algorithms{    
-    static public class Prim<T> where T: IComparable<T>{
-        static int N;
-        static Edge<T> edge;
-        static PartialOrderedTree<Edge<T>> queue;
-        static MazeGraph<T> g;
-        static bool[] added;
+namespace Algorithms {
+    public static class Prim<T> where T : IComparable<T>
+    {
+        public static MazeGraph<T> Execute(MazeGraph<T> inputGraph)
+        {
+            if (inputGraph == null)
+                throw new ArgumentNullException(nameof(inputGraph));
 
+            int totalVertices = inputGraph.NumVert;
+            bool[] added = new bool[totalVertices];
+            MazeGraph<T> resultGraph = new MazeGraph<T>(totalVertices, inputGraph.Rows, inputGraph.Cols);
+            PartialOrderedTree<Edge<T>> queue = new PartialOrderedTree<Edge<T>>(totalVertices * 4); // In a general graph (N * ((N - 1) / 2) - N + 2)
 
-        static public void initializeVariables(MazeGraph<T> G) {
-            N = G.numVert();
-            g = new MazeGraph<T>(N,G.rows,G.cols);
-            added = new bool[N];
-            added[0] = true; //first node;
-            edge = new Edge<T>(0, 0, default(T));
-            queue = new PartialOrderedTree<Edge<T>>(N * ((N - 1) / 2) - N + 2);
-            
-        }
+            added[0] = true;
+            EnqueueAdjacentEdgesNonAlloc(inputGraph, 0, added, queue);
 
-        static List<Edge<T>> adjEdges(MazeGraph<T> G, int i) {
-            List< MazeGraph<T>.VertexCost> adj = G.Adjacents(i);
-            List< Edge<T> > adjEdges_ = new List<Edge<T>>(adj.Count);
-            for(int j = 0; j < adj.Count; ++j) {
-                adjEdges_.Add(new Edge<T>(i, adj[j].vertex, adj[j].cost));
+            for (int i = 1; i < totalVertices; i++)
+            {
+                Edge<T> minimumEdge = new Edge<T>();
+                do
+                {
+                    if (queue.Count == 0)
+                        break;
+
+                    minimumEdge = queue.Pop();
+                }
+                while (added[minimumEdge.Destination]);
+
+                if (added[minimumEdge.Destination])
+                    continue;
+
+                resultGraph.AddEdge(minimumEdge.Origin, minimumEdge.Destination, minimumEdge.Cost);
+                resultGraph.AddEdge(minimumEdge.Destination, minimumEdge.Origin, minimumEdge.Cost);
+
+                int newNode = minimumEdge.Destination;
+                added[newNode] = true;
+                EnqueueAdjacentEdgesNonAlloc(inputGraph, newNode, added, queue);
             }
-            return adjEdges_;
+            return resultGraph;
         }
+        private static void EnqueueAdjacentEdgesNonAlloc(MazeGraph<T> inputGraph, int vertexIndex, bool[] added, PartialOrderedTree<Edge<T>> queue)
+        {
+            IReadOnlyList<AdjListGraph<T>.VertexCost> adjacents = inputGraph.GetAdjacents(vertexIndex);
 
-        static void enqueueAdjEdges(MazeGraph<T> G, int i) {
-            List<Edge<T>> adj = adjEdges(G, i);
-            for (int j = 0; j < adj.Count; ++j) {
-                if (!added[adj[j].dest]) {
-                    queue.insert(adj[j]);
+            for (int j = 0; j < adjacents.Count; ++j)
+            {
+                int targetVertex = adjacents[j].Vertex;
+                if (!added[targetVertex])
+                {
+                    queue.Insert(new Edge<T>(vertexIndex, targetVertex, adjacents[j].Cost));
                 }
             }
-        }
-
-
-        static public MazeGraph<T> Execute(MazeGraph<T> G) {
-            initializeVariables(G);
-            enqueueAdjEdges(G, 0);
-            for (int i = 1; i < N; i++) {
-                do {
-                    edge = queue.top();
-                    queue.delete();
-                } while (added[edge.dest]);
-                g.addEdge(edge.orig, edge.dest, edge.cost);
-                g.addEdge(edge.dest, edge.orig, edge.cost);
-                added[edge.dest] = true;
-                enqueueAdjEdges(G, edge.dest);
-            }
-            return g;
         }
     }
 
-    static public class Kruskall<T> where T : IComparable<T> {
-        
+    static public class Kruskall<T> where T : IComparable<T>
+    {
+        public static MazeGraph<T> Execute(MazeGraph<T> inputGraph)
+        {
+            if (inputGraph == null)
+                throw new ArgumentNullException(nameof(inputGraph));
 
+            int totalVertices = inputGraph.NumVert;
+            MazeGraph<T> resultGraph = new MazeGraph<T>(totalVertices, inputGraph.Rows, inputGraph.Cols);
+            Partition P = new Partition(totalVertices);
+            PartialOrderedTree<Edge<T>> queue = new PartialOrderedTree<Edge<T>>(totalVertices * 4);// totalVertices * totalVertices
 
-        static int n;
-        static MazeGraph<T> g;
-        static Partition P;
-        static PartialOrderedTree<Edge<T>> queue;
-
-        static void initializeVariables(MazeGraph<T> G) {
-            n = G.numVert();
-            g = new MazeGraph<T>(n, G.rows, G.cols);
-            P = new Partition(n);
-            queue = new PartialOrderedTree<Edge<T>>(n * n);
-            for (int i = 0; i < n; ++i) {
-                List<MazeGraph<T>.VertexCost> adj = G.Adjacents(i);
-                for (int j = 0; j < adj.Count; ++j) {
-                    queue.insert(new Edge<T>(i, adj[j].vertex, adj[j].cost));
+            for (int i = 0; i < totalVertices; ++i)
+            {
+                IReadOnlyList<AdjListGraph<T>.VertexCost> adjacents = inputGraph.GetAdjacents(i);
+                for (int j = 0; j < adjacents.Count; ++j)
+                {
+                    if (i < adjacents[j].Vertex)
+                    {
+                        queue.Insert(new Edge<T>(i, adjacents[j].Vertex, adjacents[j].Cost));
+                    }
                 }
             }
-        }
 
-        public static MazeGraph<T> Execute(MazeGraph<T> G) {
-            initializeVariables(G);
-            for (int count = 1; count < n;) {
-                Edge<T> edge = queue.top();
-                queue.delete();
-                int leader1 = P.find(edge.orig);
-                int leader2 = P.find(edge.dest);
-                if (leader1 != leader2) {
+            int edgesAdded = 0;
+            int targetEdges = totalVertices - 1;
+
+            while (edgesAdded < targetEdges && queue.Count > 0)
+            {
+                Edge<T> edge = queue.Pop();
+                int leader1 = P.find(edge.Origin);
+                int leader2 = P.find(edge.Destination);
+                if (leader1 != leader2)
+                {
                     P.join(leader1, leader2);
-                    g.addEdge(edge.orig, edge.dest, edge.cost);
-                    g.addEdge(edge.dest, edge.orig, edge.cost);
-                    ++count;
+                    resultGraph.AddEdge(edge.Origin, edge.Destination, edge.Cost);
+                    resultGraph.AddEdge(edge.Destination, edge.Origin, edge.Cost);
+                    ++edgesAdded;
                 }
             }
-            return g;
+            return resultGraph;
         }
-
-
     }
 
-    static public class AldousBroder<T> where T : IComparable<T> {
-        static List<int> unvisited;
-        static MazeGraph<T> g;
+    public static class AldousBroder<T> where T : IComparable<T>
+    {
+        public static MazeGraph<T> Execute(MazeGraph<T> inputGraph)
+        {
+            if (inputGraph == null)
+                throw new ArgumentNullException(nameof(inputGraph));
+            int totalVertices = inputGraph.NumVert;
+            if (totalVertices <= 0)
+                return new MazeGraph<T>(0, 0, 0);
 
-        public static void InitializeVariables(MazeGraph<T> G) {
-            unvisited = new List<int>(G.numVert());
-            g = new MazeGraph<T>(G.numVert(), G.rows, G.cols);
-            for (int i = 0; i < G.numVert(); ++i) {
-                unvisited.Add(i);
-            }
-        }
-
-        public static MazeGraph<T> Execute(MazeGraph<T> G) {
-            InitializeVariables(G);
+            MazeGraph<T> resultGraph = new MazeGraph<T>(totalVertices, inputGraph.Rows, inputGraph.Cols);
+            bool[] visited = new bool[totalVertices];
+            int unvisitedCount = totalVertices;
             Random rand = new Random();
-            int idx = rand.Next(0, unvisited.Count);
-            int current = unvisited[idx];
-            unvisited.Remove(idx);
-            //int count = 0;
-            while (unvisited.Count > 0) { //&& count < 100000) {
-                MazeGraph<T>.VertexCost adj = G[current][rand.Next(0, G[current].Count)];
-                if(unvisited.IndexOf(adj.vertex) != -1) {
-                    g.addEdge(current, adj.vertex, adj.cost);
-                    g.addEdge(adj.vertex, current, adj.cost);
-                    unvisited.Remove(adj.vertex);
+            int currentVertex = rand.Next(0, totalVertices);
+            visited[currentVertex] = true;
+            unvisitedCount--;
+            while (unvisitedCount > 0)
+            {
+                IReadOnlyList<AdjListGraph<T>.VertexCost> adjacents = inputGraph.GetAdjacents(currentVertex);
+                if (adjacents.Count == 0)
+                {
+                    currentVertex = rand.Next(0, totalVertices);
+                    continue;
                 }
-                current = adj.vertex;
-                //count++;
+                var randomEdge = adjacents[rand.Next(0, adjacents.Count)];
+                int neighbor = randomEdge.Vertex;
+                if (!visited[neighbor])
+                {
+                    resultGraph.AddEdge(currentVertex, neighbor, randomEdge.Cost);
+                    resultGraph.AddEdge(neighbor, currentVertex, randomEdge.Cost);
+                    visited[neighbor] = true;
+                    unvisitedCount--;
+                }
+                currentVertex = neighbor;
             }
-            return g;
+            return resultGraph;
         }
-
-
     }
 
-    static public class BinaryTree<T> where T : IComparable<T> {
-        static MazeGraph<T> g;
-        static Random rand; 
+    static public class BinaryTree<T> where T : IComparable<T>
+    {
+        public static MazeGraph<T> Execute(MazeGraph<T> inputGraph)
+        {
+            if (inputGraph == null)
+                throw new ArgumentNullException(nameof(inputGraph));
 
-        public static void InitializeVariables(MazeGraph<T> G) {
-            g = new MazeGraph<T>(G.numVert(), G.rows, G.cols);
-            rand = new Random();
+            int totalVertices = inputGraph.NumVert;
+            int cols = inputGraph.Cols;
+
+            MazeGraph<T> resultGraph = new MazeGraph<T>(totalVertices, inputGraph.Rows, inputGraph.Cols);
+            Random rand = new Random();
+
+            for (int i = 0; i < totalVertices; ++i)
+            {
+                int r = i / cols;
+                int c = i % cols;
+
+                int southNeighbor = inputGraph.GetSouth(r, c);
+                int eastNeighbor = inputGraph.GetEast(r, c);
+
+                bool hasSouth = southNeighbor != -1;
+                bool hasEast = eastNeighbor != -1;
+
+                int chosenNeighbor = -1;
+
+                if (hasSouth && hasEast)
+                    chosenNeighbor = (rand.Next(0, 2) == 0) ? southNeighbor : eastNeighbor;
+                else if (hasSouth)
+                    chosenNeighbor = southNeighbor;
+                else if (hasEast)
+                    chosenNeighbor = eastNeighbor;
+
+                if (chosenNeighbor != -1)
+                {
+                    resultGraph.AddEdge(i, chosenNeighbor, default(T));
+                    resultGraph.AddEdge(chosenNeighbor, i, default(T));
+                }
+            }
+            return resultGraph;
         }
+    }
 
-        public static MazeGraph<T> Execute(MazeGraph<T> G) {
-            InitializeVariables(G);
-            
-            for(int i = 0; i < g.numVert(); ++i) {
-                List<MazeGraph<T>.VertexCost> neighbors = new List<MazeGraph<T>.VertexCost>();
-                List<MazeGraph<T>.VertexCost> adj = G[i];
-                foreach(MazeGraph<T>.VertexCost v in adj) {
-                    if( v.vertex > i) {
-                        neighbors.Add(v);
+    static public class Sidewinder<T> where T : IComparable<T>
+    {
+        public static MazeGraph<T> Execute(MazeGraph<T> inputGraph)
+        {
+            if (inputGraph == null)
+                throw new ArgumentNullException(nameof(inputGraph));
+
+            int rows = inputGraph.Rows;
+            int cols = inputGraph.Cols;
+            int totalVertices = inputGraph.NumVert;
+
+            MazeGraph<T> resultGraph = new MazeGraph<T>(totalVertices, rows, cols);
+            Random rand = new Random();
+            for (int i = 0; i < rows; ++i)
+            {
+                int groupStartCol = 0;
+                for (int j = 0; j < cols; ++j)
+                {
+                    int currentNode = inputGraph.GetNode(i, j);
+                    bool isLastCol = (j == cols - 1);
+                    bool isFirstRow = (i == 0);
+                    bool shouldCloseGroup = isLastCol || (!isFirstRow && rand.Next(0, 2) == 0);
+
+                    if (shouldCloseGroup)
+                    {
+                        if (isFirstRow)
+                        {
+                            if (!isLastCol)
+                            {
+                                int east = inputGraph.GetEast(i, j);
+                                resultGraph.AddEdge(currentNode, east, default(T));
+                                resultGraph.AddEdge(east, currentNode, default(T));
+                            }
+                        }
+                        else
+                        {
+                            int randomCol = rand.Next(groupStartCol, j + 1);
+
+                            int sourceNode = inputGraph.GetNode(i, randomCol);
+                            int northNode = inputGraph.GetNorth(i, randomCol);
+
+                            resultGraph.AddEdge(sourceNode, northNode, default(T));
+                            resultGraph.AddEdge(northNode, sourceNode, default(T));
+                        }
+                        groupStartCol = j + 1;
+                    }
+                    else
+                    {
+                        int east = inputGraph.GetEast(i, j);
+                        resultGraph.AddEdge(currentNode, east, default(T));
+                        resultGraph.AddEdge(east, currentNode, default(T));
                     }
                 }
-                if(neighbors.Count > 0) {
-                    int idx = rand.Next(0, neighbors.Count);
-                    MazeGraph<T>.VertexCost neighbor = neighbors[idx];
-                    g.addEdge(i, neighbor.vertex, neighbor.cost);
-                    g.addEdge(neighbor.vertex, i, neighbor.cost);
-                }
-
             }
-            return g;
-        }
-
-
-    }
-
-    static public class Sidewinder<T> where T : IComparable<T> {
-        static MazeGraph<T> g;
-        static System.Random rand;
-
-        public static void InitializeVariables(MazeGraph<T> G) {
-            g = new MazeGraph<T>(G.numVert(), G.rows, G.cols);
-            rand = new System.Random();
-        }
-
-        public static MazeGraph<T> Execute(MazeGraph<T> G) {
-            InitializeVariables(G);
-            for (int i = 0; i < g.rows; ++i) {
-                List<int> group = new List<int>();
-                for (int j = 0; j < g.cols; ++j) {
-                    group.Add(j);
-                    if (!(j < g.cols - 1) || ((i < g.rows - 1) && rand.Next(2) == 0)) {
-                        int connectAt = group[rand.Next(0, group.Count)];
-                        g.addEdge(g.GetNode(i, connectAt), g.GetNode(i+1, connectAt), default(T));
-                        g.addEdge(g.GetNode(i+1, connectAt), g.GetNode(i, connectAt), default(T));
-                        group.Clear();
-                    } else {
-                        g.addEdge(g.GetNode(i, j), g.GetEast(i, j), default(T));
-                        g.addEdge(g.GetEast(i, j), g.GetNode(i, j), default(T));
-                    }                              
-                }
-            }            
-            return g;
+            return resultGraph;
         }
     }
+    
+    static public class Wilson<T> where T : IComparable<T>
+    {
+        public static MazeGraph<T> Execute(MazeGraph<T> inputGraph)
+        {
+            if (inputGraph == null)
+                throw new ArgumentNullException(nameof(inputGraph));
 
-    static public class Wilson<T> where T : IComparable<T> {
-        static MazeGraph<T> g;
-        static List<int> unvisited;
-        static System.Random rand;
+            var numVert = inputGraph.NumVert;
+            var g = new MazeGraph<T>(numVert, inputGraph.Rows, inputGraph.Cols);
+            var rand = new Random();
+            T defVal = default;
 
-        public static void InitializeVariables(MazeGraph<T> G) {
-            g = new MazeGraph<T>(G.numVert(), G.rows, G.cols);
-            unvisited = new List<int>(G.numVert());
-            for (int i = 0; i < G.numVert(); ++i) {
-                unvisited.Add(i);
-            }
-            rand = new System.Random();
-        }
+            bool[] inMaze = new bool[numVert];
+            int[] nextStep = new int[numVert];
 
-        public static MazeGraph<T> Execute(MazeGraph<T> G) {
-            InitializeVariables(G);
-            //int count = 0;
-            int idx = rand.Next(0, unvisited.Count);
-            int first = unvisited[idx];
-            unvisited.RemoveAt(idx);
-            while(unvisited.Count > 0) {//&& count<500000) {
-                int current = unvisited[rand.Next(0, unvisited.Count)];
-                List<int> path = new List<int>();
-                path.Add(current);
-                while (unvisited.IndexOf(current) != -1) {//&& count < 500000) {
-                    current = G.Adjacents(current)[rand.Next(0, G.Adjacents(current).Count)].vertex;
-                    int pos = path.IndexOf(current);
-                    if (pos == -1) {
-                        path.Add(current);
-                    } else {
-                        path = path.GetRange(0, pos + 1);
+            int[] unvisited = new int[numVert];
+            for (int i = 0; i < numVert; ++i)
+                unvisited[i] = i;
+            int unvisitedCount = numVert;
+
+            int firstIdx = rand.Next(0, unvisitedCount);
+            int firstNode = unvisited[firstIdx];
+            inMaze[firstNode] = true;
+
+            unvisited[firstIdx] = unvisited[unvisitedCount - 1];
+            unvisitedCount--;
+
+            int[] neighbors = new int[4];
+
+            while (unvisitedCount > 0)
+            {
+                int startNode = unvisited[rand.Next(0, unvisitedCount)];
+                int current = startNode;
+
+                while (!inMaze[current])
+                {
+                    int row = current / inputGraph.Cols;
+                    int col = current % inputGraph.Cols;
+                    int neighborCount = 0;
+
+                    if (row > 0)
+                        neighbors[neighborCount++] = current - inputGraph.Cols;
+                    if (row < inputGraph.Rows - 1)
+                        neighbors[neighborCount++] = current + inputGraph.Cols;
+                    if (col > 0)
+                        neighbors[neighborCount++] = current - 1;
+                    if (col < inputGraph.Cols - 1)
+                        neighbors[neighborCount++] = current + 1;
+
+                    int nextNode = neighbors[rand.Next(0, neighborCount)];
+
+                    nextStep[current] = nextNode;
+                    current = nextNode;
+                }
+
+                current = startNode;
+                while (!inMaze[current])
+                {
+                    inMaze[current] = true;
+                    int next = nextStep[current];
+
+                    g.AddEdge(current, next, defVal);
+                    g.AddEdge(next, current, defVal);
+
+                    current = next;
+                }
+
+                for (int i = 0; i < unvisitedCount;)
+                {
+                    int node = unvisited[i];
+                    if (inMaze[node])
+                    {
+                        unvisited[i] = unvisited[unvisitedCount - 1];
+                        unvisitedCount--;
                     }
-                    //count++;
+                    else
+                    {
+                        i++;
+                    }
                 }
-                for (int i = 0; i < path.Count - 1; ++i) {
-                    g.addEdge(path[i], path[i + 1], default(T));
-                    g.addEdge(path[i + 1], path[i], default(T));                    
-                    unvisited.Remove(path[i]);
-                }
-
-            }            
+            }
             return g;
         }
     }
 
-    static public class RecursiveDivision<T> where T : IComparable<T> {
-        static MazeGraph<T> g;
-        static Random rand;
+    static public class RecursiveDivision<T> where T : IComparable<T>
+    {
+        public static MazeGraph<T> Execute(MazeGraph<T> inputGraph)
+        {
+            if (inputGraph == null)
+                throw new ArgumentNullException(nameof(inputGraph));
 
-        //If function is called only with 1 parameter, it means you must find the number of row  
-        //by find a cell that travels to the north,indicated by an adjacent vertex whose ID be greater than
-        //current_vertex_ID+1 (this would mean "east" vertex), this algorithm requires a width and height of 
-        //at least 2, otherwise it could cause unexpected behavior.
-        public static void InitializeVariables(MazeGraph<T> G) {
-            g = new MazeGraph<T>(G);
-            rand = new Random();
+            MazeGraph<T> resultGraph = new MazeGraph<T>(inputGraph);
+            Random rand = new Random();
+
+            Divide(0, 0, resultGraph.Rows, resultGraph.Cols, resultGraph, rand);
+            return resultGraph;
         }
 
-        public static MazeGraph<T> Execute(MazeGraph<T> G) {
-            InitializeVariables(G);
-            Divide(0, 0, g.rows, g.cols);
-            return g;
-        }
-
-        private static void Divide(int row, int col, int height, int width) {
-            if (height <= 1 || width <= 1) {
+        private static void Divide(int row, int col, int height, int width, MazeGraph<T> graph, Random rand)
+        {
+            if (height <= 1 || width <= 1)
                 return;
-            } else {
-                if (height > width) {
-                    DivideHorizontally(row, col, height, width);
-                } else {
-                    DivideVertically(row, col, height, width);
-                }
-            }
+
+            if (height > width)
+                DivideHorizontally(row, col, height, width, graph, rand);
+            else
+                DivideVertically(row, col, height, width, graph, rand);
         }
 
-        private static void DivideHorizontally(int row, int col, int height, int width) {
-            int divideCell = rand.Next(height - 1);
-            int passage_at = rand.Next(width);
-            for (int i = 0; i < width; ++i) {
-                if (i != passage_at) {
-                    int r = row + divideCell;
-                    int c = col + i;
-                    int node = g.GetNode(r, c);
-                    int southnode = g.GetNode(r+1, c);
-                    g.removeEdge(node, southnode);
-                    g.removeEdge(southnode, node);                    
-                }
-            }
-            Divide(row, col, divideCell + 1, width);
-            Divide(row + divideCell + 1, col, height - divideCell - 1, width);
-        }
+        private static void DivideHorizontally(int row, int col, int height, int width, MazeGraph<T> graph, Random rand)
+        {
+            int divideRowOffset = rand.Next(height - 1);
+            int passageColOffset = rand.Next(width);
+            int targetRow = row + divideRowOffset;
 
-        private static void DivideVertically(int row, int col, int height, int width) {
-            int divideCell = rand.Next(width - 1);
-            int passage_at = rand.Next(height);
-            for (int i = 0; i < height; ++i) {
-                if (i != passage_at) {
-                    int r = row + i;
-                    int c = col + divideCell;
-                    int node = g.GetNode(r, c);
-                    int eastnode = g.GetEast(r, c);
-                    g.removeEdge(node, eastnode);
-                    g.removeEdge(eastnode, node);
-                }
-            }
-            Divide(row, col, height, divideCell + 1);
-            Divide(row, col + divideCell + 1, height, width - divideCell - 1);
-        }
-    }
+            for (int i = 0; i < width; ++i)
+            {
+                if (i != passageColOffset)
+                {
+                    int currentCol = col + i;
 
-    static public class HuntAndKill<T> where T : IComparable<T> {
-        static MazeGraph<T> g;
-        static bool[] visited;
-        static int counter;
-        static System.Random rand;
+                    // Usamos los métodos nativos de tu grafo para obtener los índices reales y seguros
+                    int currentNode = graph.GetNode(targetRow, currentCol);
+                    int southNode = graph.GetSouth(targetRow, currentCol);
 
-        static public void initializeVariables(MazeGraph<T> G) {
-            counter = G.numVert();
-            g = new MazeGraph<T>(counter, G.rows, G.cols);
-            visited = new bool[counter];
-            rand = new System.Random();
-        }
-
-        static public MazeGraph<T> Execute(MazeGraph<T> G) {
-            initializeVariables(G);
-            int current = rand.Next(g.numVert());
-            visited[current] = true;
-            do {
-                current = Kill(current);
-                if (current == -1) {
-                    current = Hunt();
-                }
-            } while (current != -1);
-            return g;
-        }
-
-        private static int Kill(int current) {
-            bool deadend = false;
-            while (!deadend) {
-                List<int> noAdj = g.UnconnectedNeighbors(current / g.cols, current % g.cols);
-                bool unconnected = false;
-                while (0 < noAdj.Count && !unconnected) {
-                    int idx = rand.Next(noAdj.Count);
-                    if (!visited[noAdj[idx]]) {
-                        g.addEdge(current, noAdj[idx], default(T));
-                        g.addEdge(noAdj[idx], current, default(T));
-                        current = noAdj[idx];
-                        visited[current] = true;
-                        unconnected = true;
-                        --counter;
-                    } else {
-                        noAdj.RemoveAt(idx);
+                    // Solo eliminamos la arista si el vecino del sur existe legalmente en el grafo
+                    if (currentNode != -1 && southNode != -1)
+                    {
+                        graph.RemoveEdge(currentNode, southNode);
+                        graph.RemoveEdge(southNode, currentNode);
                     }
                 }
-                if (!unconnected) {
-                    deadend = true;
-                }
             }
-            return -1;
+
+            int nextHeight = divideRowOffset + 1;
+            Divide(row, col, nextHeight, width, graph, rand);
+            Divide(row + nextHeight, col, height - nextHeight, width, graph, rand);
         }
 
-        private static int Hunt() {
-            for (int i = 0; i < g.numVert(); ++i) {
-                if (!visited[i]) {
-                    List<int> neighbors = g.Neighbors(i / g.cols, i % g.cols);
-                    foreach (int neighbor in neighbors) {
-                        if (visited[neighbor]) {
-                            g.addEdge(i, neighbor, default(T));
-                            g.addEdge(neighbor, i, default(T));
-                            visited[i] = true;
-                            return i;
+        private static void DivideVertically(int row, int col, int height, int width, MazeGraph<T> graph, Random rand)
+        {
+            int divideColOffset = rand.Next(width - 1);
+            int passageRowOffset = rand.Next(height);
+            int targetCol = col + divideColOffset;
+
+            for (int i = 0; i < height; ++i)
+            {
+                if (i != passageRowOffset)
+                {
+                    int currentRow = row + i;
+
+                    // Usamos los métodos nativos de tu grafo para obtener los índices reales y seguros
+                    int currentNode = graph.GetNode(currentRow, targetCol);
+                    int eastNode = graph.GetEast(currentRow, targetCol);
+
+                    // Solo eliminamos la arista si el vecino del este existe legalmente en el grafo
+                    if (currentNode != -1 && eastNode != -1)
+                    {
+                        graph.RemoveEdge(currentNode, eastNode);
+                        graph.RemoveEdge(eastNode, currentNode);
+                    }
+                }
+            }
+
+            int nextWidth = divideColOffset + 1;
+            Divide(row, col, height, nextWidth, graph, rand);
+            Divide(row, col + nextWidth, height, width - nextWidth, graph, rand);
+        }
+    }
+    
+    static public class HuntAndKill<T> where T : IComparable<T>
+    {
+        public static MazeGraph<T> Execute(MazeGraph<T> G)
+        {
+            if (G == null) throw new ArgumentNullException(nameof(G));
+
+            int numVert = G.NumVert;
+            int cols = G.Cols;
+            int rows = G.Rows;
+            MazeGraph<T> g = new MazeGraph<T>(numVert, rows, cols);
+            bool[] visited = new bool[numVert];
+            Random rand = new Random();
+            T defVal = default(T);
+
+            int current = rand.Next(numVert);
+            visited[current] = true;
+
+            int[] neighbors = new int[4];
+
+            int firstUnvisited = 0;
+
+            while (current != -1)
+            {
+                bool deadend = false;
+                while (!deadend)
+                {
+                    int r = current / cols;
+                    int c = current % cols;
+                    int neighborCount = 0;
+
+                    if (r > 0 && !visited[current - cols])
+                        neighbors[neighborCount++] = current - cols;
+                    if (r < rows - 1 && !visited[current + cols])
+                        neighbors[neighborCount++] = current + cols;
+                    if (c > 0 && !visited[current - 1])
+                        neighbors[neighborCount++] = current - 1;
+                    if (c < cols - 1 && !visited[current + 1])
+                        neighbors[neighborCount++] = current + 1;
+
+                    if (neighborCount > 0)
+                    {
+                        int nextNode = neighbors[rand.Next(neighborCount)];
+
+                        g.AddEdge(current, nextNode, defVal);
+                        g.AddEdge(nextNode, current, defVal);
+
+                        current = nextNode;
+                        visited[current] = true;
+                    }
+                    else
+                    {
+                        deadend = true;
+                    }
+                }
+
+                current = -1;
+
+                while (firstUnvisited < numVert && visited[firstUnvisited])
+                {
+                    firstUnvisited++;
+                }
+
+                for (int hunt = firstUnvisited; hunt < numVert; ++hunt)
+                {
+                    if (!visited[hunt])
+                    {
+                        int r = hunt / cols;
+                        int c = hunt % cols;
+                        int connectedNeighbor = -1;
+
+                        if (r > 0 && visited[hunt - cols])
+                            connectedNeighbor = hunt - cols;
+                        else if (r < rows - 1 && visited[hunt + cols])
+                            connectedNeighbor = hunt + cols;
+                        else if (c > 0 && visited[hunt - 1])
+                            connectedNeighbor = hunt - 1;
+                        else if (c < cols - 1 && visited[hunt + 1])
+                            connectedNeighbor = hunt + 1;
+
+                        if (connectedNeighbor != -1)
+                        {
+                            g.AddEdge(hunt, connectedNeighbor, defVal);
+                            g.AddEdge(connectedNeighbor, hunt, defVal);
+
+                            visited[hunt] = true;
+                            current = hunt;
+                            break;
                         }
                     }
                 }
             }
-            return -1;
+            return g;
         }
     }
 
+    static public class Ellers<T> where T : IComparable<T>
+    {
+        public static MazeGraph<T> Execute(MazeGraph<T> G)
+        {
+            MazeGraph<T> g = new MazeGraph<T>(G.NumVert, G.Rows, G.Cols);
+            Random rand = new Random();
 
-	//adaptado de unlicensed ellers https://gist.github.com/grantslatton/6906668
-    static public class Ellers<T> where T : IComparable<T> {
+            int[] sets = new int[g.Cols];
+            for (int j = 0; j < sets.Length; ++j)
+                sets[j] = j;
 
-        static MazeGraph<T> g;
-        static Random rand;
-
-        public static void InitializeVariables(MazeGraph<T> G) {
-            g = new MazeGraph<T>(G.numVert(), G.rows, G.cols);
-            rand = new Random();
-        }
-
-        public static MazeGraph<T> Execute(MazeGraph<T> G) {
-            InitializeVariables(G);
-            int[] conjuntos = Enumerable.Range(0, g.cols).ToArray<int>();
-            for (int i = 0; i < g.rows; ++i) {
-                for (int j = 0; j < g.cols - 1; ++j) {
-                    if ((i == g.rows - 1 || rand.Next(2) == 1) && !g.hasEdge(g.GetNode(i, j), g.GetNode(i, j + 1))) {
-                        conjuntos[j + 1] = conjuntos[j];
-                        g.addEdge(g.GetNode(i, j), g.GetNode(i, j + 1), default(T));
-                        g.addEdge(g.GetNode(i, j + 1), g.GetNode(i, j), default(T));
+            for (int i = 0; i < g.Rows; ++i)
+            {
+                for (int j = 0; j < g.Cols - 1; ++j)
+                {
+                    if ((i == g.Rows - 1 || rand.Next(2) == 1) && !g.HasEdge(g.GetNode(i, j), g.GetNode(i, j + 1)))
+                    {
+                        sets[j + 1] = sets[j];
+                        g.AddEdge(g.GetNode(i, j), g.GetNode(i, j + 1), default(T));
+                        g.AddEdge(g.GetNode(i, j + 1), g.GetNode(i, j), default(T));
                     }
                 }
-                if (i < g.rows - 1) {
-                    int[] siguientesconjuntos = Enumerable.Range((i + 1) * g.cols, g.cols).ToArray<int>();
-                    HashSet<int> todoslosconjuntos = new HashSet<int>(conjuntos);
+                if (i < g.Rows - 1)
+                {
+                    int[] siguientesconjuntos = Enumerable.Range((i + 1) * g.Cols, g.Cols).ToArray<int>();
+
+                    HashSet<int> todoslosconjuntos = new HashSet<int>(sets);
                     HashSet<int> conjuntosmovidos = new HashSet<int>();
-                    while (!todoslosconjuntos.SetEquals(conjuntosmovidos)) {
-                        for (int j = 0; j < g.cols; ++j) {
-                            if (rand.Next(2) == 1 && !conjuntosmovidos.Contains(conjuntos[j])) {
-                                conjuntosmovidos.Add(conjuntos[j]);
-                                siguientesconjuntos[j] = conjuntos[j];
-                                g.addEdge(g.GetNode(i, j), g.GetNode(i + 1, j), default(T));
-                                g.addEdge(g.GetNode(i + 1, j), g.GetNode(i, j), default(T));
+                    while (!todoslosconjuntos.SetEquals(conjuntosmovidos))
+                    {
+                        for (int j = 0; j < g.Cols; ++j)
+                        {
+                            if (rand.Next(2) == 1 && !conjuntosmovidos.Contains(sets[j]))
+                            {
+                                conjuntosmovidos.Add(sets[j]);
+                                siguientesconjuntos[j] = sets[j];
+                                g.AddEdge(g.GetNode(i, j), g.GetNode(i + 1, j), default(T));
+                                g.AddEdge(g.GetNode(i + 1, j), g.GetNode(i, j), default(T));
                             }
                         }
                     }
-                    conjuntos = siguientesconjuntos;
+                    sets = siguientesconjuntos;
                 }
             }
             return g;
         }
     }
 
-    public class Partition {
-        List<int> parent;
+    public class Partition
+    {
+        private readonly int[] _parent;
 
-        
-
-        public Partition(int n) {
-            parent = new List<int>(Enumerable.Repeat(-1, n));
+        public Partition(int size)
+        {
+            _parent = new int[size];
+            Array.Fill(_parent, -1); // Inicialización con Array.Fill para mayor eficiencia
         }
 
-        public Partition(Partition P) {
-            parent = new List<int>(P.parent);
-        }
-
-
-        public List<int> getParent() {
-            return new List<int>(parent);
-        }
-
-        public void setParent(List<int> p) {
-            parent = p.GetRange(0,p.Count);
-        }
-
-
-
-        public void join(int a, int b) {
-            if (parent[b] < parent[a])
-                parent[a] = b;
-            else {
-                if (parent[a] == parent[b])
-                    --parent[a];
-                parent[b] = a;
+        public void join(int root1, int root2)
+        {
+            if (_parent[root2] < _parent[root1])
+            {
+                _parent[root1] = root2;
+            }
+            else
+            {
+                if (_parent[root1] == _parent[root2])
+                {
+                    --_parent[root1];
+                }
+                _parent[root2] = root1;
             }
         }
 
-        public int find(int a) {
-            int b, leader = a;
-            while (parent[leader] > -1) {
-                leader = parent[leader];
+        public int find(int vertex)
+        {
+            int leader = vertex;
+            while (_parent[leader] > -1)
+            {
+                leader = _parent[leader];
             }
-            while (parent[a] > -1) {
-                b = parent[a];
-                parent[a] = leader;
-                a = b;
+
+            while (_parent[vertex] > -1)
+            {
+                int next = _parent[vertex];
+                _parent[vertex] = leader;
+                vertex = next;
             }
             return leader;
         }
     }
 
-    static public class Shuffle<T> {
-        static public List<T> FisherYates(List<T> L) {
-            List<T> newlist = L;
-            System.Random rand = new System.Random();
-            for(int i = L.Count-1; i >= 0; --i) {
-                int j = rand.Next(i+1);
-                T temp = newlist[j];
-                newlist[j] = newlist[i];
-                newlist[i] = temp;
-            }
-            return newlist;
-        }
+    static public class Shuffle<T>
+    {
+        private static readonly Random _rand = new Random();
+        static public List<T> FisherYates(List<T> originalList)
+        {
+            if (originalList == null)
+                throw new ArgumentNullException(nameof(originalList));
 
+            List<T> newList = new List<T>(originalList);
+            for (int i = originalList.Count - 1; i >= 0; --i)
+            {
+                int j = _rand.Next(i + 1);
+                T temp = newList[j];
+                newList[j] = newList[i];
+                newList[i] = temp;
+            }
+            return newList;
+        }
     }
+
 }

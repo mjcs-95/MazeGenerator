@@ -65,11 +65,11 @@ public class ExportToOBj<T> where T : System.IComparable<T> {
 
     public void GenerateObj(MazeGraph<T> G, bool ceil = false) 
     {
-        xsize = G.rows;
-        ysize = G.cols;
+        xsize = G.Rows;
+        ysize = G.Cols;
         using (System.IO.StreamWriter file = new System.IO.StreamWriter(@Application.dataPath+"/Resources/objeto1.obj")) {
-            for (int i = 0; i < G.rows; ++i)
-                for (int j = 0; j < G.cols; ++j) {
+            for (int i = 0; i < G.Rows; ++i)
+                for (int j = 0; j < G.Cols; ++j) {
                     sb.Clear();
                     V = new System.Numerics.Vector3[]{
                         new System.Numerics.Vector3(i  ,j  , 0),
@@ -82,10 +82,10 @@ public class ExportToOBj<T> where T : System.IComparable<T> {
                         new System.Numerics.Vector3(i+1,j+1, 1)
                     };
                     WriteWall(V, 0);
-                    if (!G.hasEdge(G.GetNode(i, j), G.GetNode(i + 1, j)) || i == G.rows - 1 ) { WriteWall(V, 1); }
-                    if (!G.hasEdge(G.GetNode(i, j), G.GetNode(i - 1, j)) || i == 0          ) { WriteWall(V, 2); }
-                    if (!G.hasEdge(G.GetNode(i, j), G.GetNode(i, j + 1)) || j == G.cols - 1 ) { WriteWall(V, 3); }
-                    if (!G.hasEdge(G.GetNode(i, j), G.GetNode(i, j - 1)) || j == 0          ) { WriteWall(V, 4); }
+                    if (!G.HasEdge(G.GetNode(i, j), G.GetNode(i + 1, j)) || i == G.Rows - 1 ) { WriteWall(V, 1); }
+                    if (!G.HasEdge(G.GetNode(i, j), G.GetNode(i - 1, j)) || i == 0          ) { WriteWall(V, 2); }
+                    if (!G.HasEdge(G.GetNode(i, j), G.GetNode(i, j + 1)) || j == G.Cols - 1 ) { WriteWall(V, 3); }
+                    if (!G.HasEdge(G.GetNode(i, j), G.GetNode(i, j - 1)) || j == 0          ) { WriteWall(V, 4); }
                     if (ceil) { WriteWall(V, 5); }
                     file.Write(sb.ToString());
                 }

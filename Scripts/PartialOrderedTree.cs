@@ -1,87 +1,114 @@
 ﻿using System;
-using UnityEngine; //Debug.log
+using UnityEngine;
+using static UnityEditor.Progress;
 
 public class PartialOrderedTree<T> where T : IComparable<T> {
-    /*Private*/
+    private T[] _heap;
+    private int _count;
 
-    private T[] heap;
-    private int capacity;
-    private int last;
+    public int Count => _count;
+    public bool IsEmpty => _count == 0;
+    public int Capacity => _heap.Length;
 
-    private int left    (int i){ return (2 * i + 1); }
-    private int right   (int i){ return (2 * i + 2); }
-    private int parent  (int i){ return (i - 1) / 2; }
 
-    private void waft(int i) {
-        T data = heap[i];
-        while (i > 0 && data.CompareTo(heap[parent(i)]) == -1 ) {
-            heap[i] = heap[parent(i)];
-            i = parent(i);
-        }
-        heap[i] = data;
+    private static int GetLeftChild(int i) => (i << 1) + 1;
+    private static int GetRightChild(int i) => (i << 1) + 2;
+    private static int GetParent(int i) => (i - 1) >> 1;
+
+    public PartialOrderedTree(int initialCapacity = 16)
+    {
+        if (initialCapacity <= 0) initialCapacity = 16;
+        _heap = new T[initialCapacity];
+        _count = 0;
     }
 
-    private void sink(int i){
-        bool ended = false;
-        T data = heap[i];
-        while (left(i) <= last && !ended){
-            int minSon;
-            if (left(i) < last && heap[right(i)].CompareTo( heap[left(i)] ) == -1) {
-                minSon = right(i);
-            } else {
-                minSon = left(i);
+    public T Top()
+    {
+        if (IsEmpty)
+            throw new InvalidOperationException("The tree is empty.");
+        return _heap[0];
+    }
+
+    private void Resize(int newCapacity)
+    {
+        T[] newHeap = new T[newCapacity];
+        Array.Copy(_heap, newHeap, _count);
+        _heap = newHeap;
+    }
+
+    public void Clear()
+    {
+        Array.Clear(_heap, 0, _count);
+        _count = 0;
+    }
+
+    private void Waft(int i) 
+    {
+        T data = _heap[i];
+        while (i > 0) 
+        {
+            int parentIdx = GetParent(i);
+            if (data.CompareTo(_heap[parentIdx]) >= 0)
+                break;
+
+            _heap[i] = _heap[parentIdx];
+            i = parentIdx;
+        }
+        _heap[i] = data;
+    }
+
+    private void Sink(int i)
+    {
+        T data = _heap[i];
+        int leftIdx;
+
+        while ((leftIdx = GetLeftChild(i)) < _count)
+        {
+            int rightIdx = GetRightChild(i);
+            int minSon = leftIdx;
+
+            if (rightIdx < _count && _heap[rightIdx].CompareTo(_heap[leftIdx]) < 0)
+            {
+                minSon = rightIdx;
             }
-            if (heap[minSon].CompareTo(data) == -1) {
-                heap[i] = heap[minSon];
-                i = minSon;
-            } else {
-                ended = true;
-            }
+
+            if (data.CompareTo(_heap[minSon]) <= 0)
+                break;
+
+            _heap[i] = _heap[minSon];
+            i = minSon;
         }
-        heap[i] = data;
-    }
-
-    /*Public*/
-    public int Count() {
-        return last + 1;
+        _heap[i] = data;
     }
 
 
-    public PartialOrderedTree(int cap) {
-        heap = new T[cap];
-        capacity = cap;
-        last = -1;
-    }
-    
-    public void insert(T newData) {
-        if(last < capacity - 1) {
-            heap[++last] = newData;
-            waft(last);
-        } else {
-            Debug.Log("capacity exceeded");
+    public void Insert(T item) 
+    {
+        if (_count == _heap.Length)
+        {
+            Resize(_heap.Length * 2);
         }
+        _heap[_count] = item;
+        Waft(_count);
+        _count++;
     }
 
-    public void delete() {
-        if (last > -1) {
-            if (--last > -1) {
-                heap[0] = heap[last + 1];
-                if (last > 0)
-                    sink(0);
-            }
-        } else {
-            Debug.Log("No element to delete");
+    public T Pop() 
+    {
+        if (IsEmpty)
+            throw new InvalidOperationException("The tree is empty.");
+
+        T root = _heap[0];
+        _count--;
+
+        if (_count > 0)
+        {
+            _heap[0] = _heap[_count];
+            Sink(0);
         }
+        _heap[_count] = default;
+
+        return root;
     }
 
-    public T top() {
-        if (last > -1)   // Apo no vacío
-            return heap[0];
-        else
-            return default(T);
-    }
-
-    public bool empty() {
-        return (last == -1);
-    }
 }

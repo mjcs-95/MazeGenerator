@@ -16,8 +16,8 @@ public class StatComparison<T> where T : IComparable<T>
     private int deadEnds(MazeGraph<T> g)
     {
         int deadends = 0;
-        for (int i = 0; i < g.rows; ++i)
-            for (int j = 0; j < g.cols - 1; ++j)
+        for (int i = 0; i < g.Rows; ++i)
+            for (int j = 0; j < g.Cols - 1; ++j)
                 if (g.ConnectedNeighbors(i, j).Count == 1)
                     ++deadends;
         return deadends;
@@ -25,15 +25,15 @@ public class StatComparison<T> where T : IComparable<T>
 
     public float deadendsPercentage(MazeGraph<T> g) 
     { 
-        return 100.0f * deadEnds(g) / (g.rows * g.cols); 
+        return 100.0f * deadEnds(g) / (g.Rows * g.Cols); 
     }
 
     //interSections
     private int interSections(MazeGraph<T> g) 
     {
         int intersections = 0;
-        for (int i = 0; i < g.rows; ++i)
-            for (int j = 0; j < g.cols - 1; ++j)
+        for (int i = 0; i < g.Rows; ++i)
+            for (int j = 0; j < g.Cols - 1; ++j)
                 if (2 < g.ConnectedNeighbors(i, j).Count)
                     ++intersections;
         return intersections;
@@ -41,7 +41,7 @@ public class StatComparison<T> where T : IComparable<T>
 
     public float interSectionsPercentage(MazeGraph<T> g) 
     {
-        return 100.0f * interSections(g) / (g.rows * g.cols);
+        return 100.0f * interSections(g) / (g.Rows * g.Cols);
     }
 
     //LongestPath
@@ -50,8 +50,8 @@ public class StatComparison<T> where T : IComparable<T>
         bool[] visited;
         KeyValuePair<KeyValuePair<int, int>, int> LP = new KeyValuePair<KeyValuePair<int, int>, int>();
         List<KeyValuePair<int, int>> adycost = new List<KeyValuePair<int, int>>();
-        for (int i = 0; i < G.rows; ++i)
-            for (int j = 0; j < G.rows; ++j) {
+        for (int i = 0; i < G.Rows; ++i)
+            for (int j = 0; j < G.Rows; ++j) {
                 visited = new bool[G.NumVert];
                 visited[G.GetNode(i, j)] = true;
                 foreach (var n in G.ConnectedNeighbors(i, j))
@@ -62,46 +62,49 @@ public class StatComparison<T> where T : IComparable<T>
                     visited[c.Key] = true;
                     if (LP.Value < c.Value)
                         LP = new KeyValuePair<KeyValuePair<int, int>, int>(new KeyValuePair<int, int>(G.GetNode(i, j), c.Key), c.Value);
-                    foreach (var n in G.ConnectedNeighbors(G.GetCoord(c.Key)[0], G.GetCoord(c.Key)[1]))
+
+                    var coord = G.GetCoord(c.Key);
+                    foreach (var n in G.ConnectedNeighbors(coord.Row, coord.Col))
                         if (!visited[n])
                             adycost.Add(new KeyValuePair<int, int>(n, c.Value + 1));
+
                     adycost.RemoveAt(0);
                 }
             }
-        return 100.0f * LP.Value / (G.rows * G.cols);
+        return 100.0f * LP.Value / (G.Rows * G.Cols);
     }
 
 
     //Directness
     public float Directness(MazeGraph<T> g) {
         int direct = 0;
-        for (int i = 0; i < g.rows; ++i) 
-            for (int j = 0; j < g.rows; ++j) 
+        for (int i = 0; i < g.Rows; ++i) 
+            for (int j = 0; j < g.Rows; ++j) 
             {
-                bool n = g.hasEdge(g.GetNode(i, j), g.GetNode(i + 1, j));
-                bool s = g.hasEdge(g.GetNode(i, j), g.GetNode(i - 1, j));
-                bool e = g.hasEdge(g.GetNode(i, j), g.GetNode(i, j + 1));
-                bool w = g.hasEdge(g.GetNode(i, j), g.GetNode(i, j - 1));
+                bool n = g.HasEdge(g.GetNode(i, j), g.GetNode(i + 1, j));
+                bool s = g.HasEdge(g.GetNode(i, j), g.GetNode(i - 1, j));
+                bool e = g.HasEdge(g.GetNode(i, j), g.GetNode(i, j + 1));
+                bool w = g.HasEdge(g.GetNode(i, j), g.GetNode(i, j - 1));
                 if ( ((n && s) && !w && !e) || ((e && w) && !n && !s))
                     ++direct;
             }
-        return 100.0f * direct / (g.rows * g.cols);
+        return 100.0f * direct / (g.Rows * g.Cols);
     }
 
     //Twistiness
     public float Twistiness(MazeGraph<T> g) 
     {
         int twists = 0;
-        for (int i = 0; i < g.rows; ++i)
-            for (int j = 0; j < g.rows; ++j) {
-                bool n = g.hasEdge(g.GetNode(i, j), g.GetNode(i + 1, j));
-                bool s = g.hasEdge(g.GetNode(i, j), g.GetNode(i - 1, j));
-                bool e = g.hasEdge(g.GetNode(i, j), g.GetNode(i, j + 1));
-                bool w = g.hasEdge(g.GetNode(i, j), g.GetNode(i, j - 1));
+        for (int i = 0; i < g.Rows; ++i)
+            for (int j = 0; j < g.Rows; ++j) {
+                bool n = g.HasEdge(g.GetNode(i, j), g.GetNode(i + 1, j));
+                bool s = g.HasEdge(g.GetNode(i, j), g.GetNode(i - 1, j));
+                bool e = g.HasEdge(g.GetNode(i, j), g.GetNode(i, j + 1));
+                bool w = g.HasEdge(g.GetNode(i, j), g.GetNode(i, j - 1));
                 if ((n & !s & (e || w)) || (!n & s & (e || w)) || (!w & e & (n || s)) || (w & !e & (n || s)) )
                     ++twists;
             }
-        return 100.0f * twists / (g.rows * g.cols);
+        return 100.0f * twists / (g.Rows * g.Cols);
     }
 
     public void executeCharacteristicsAnalysis() {
@@ -178,49 +181,6 @@ public class StatComparison<T> where T : IComparable<T>
 
     }
 
-
-
-    public void executeAlgorithm() 
-    {        
-        switch (generationAlgorithm) 
-        {
-            case MazeGenerator.Algorithm.AldousBroder:
-                //G = 
-                Algorithms.AldousBroder<int>.Execute(G);
-                break;
-            case MazeGenerator.Algorithm.BinaryTree:
-                //G = 
-                Algorithms.BinaryTree<int>.Execute(G);
-                break;
-            case MazeGenerator.Algorithm.Ellers:
-                //G = 
-                Algorithms.Ellers<int>.Execute(G);
-                break;
-            case MazeGenerator.Algorithm.HuntAndKill:
-                //G = 
-                Algorithms.HuntAndKill<int>.Execute(G);
-                break;
-            case MazeGenerator.Algorithm.Kruskall:
-                //G = 
-                Algorithms.Kruskall<int>.Execute(G);
-                break;
-            case MazeGenerator.Algorithm.Prim:
-                //G = 
-                Algorithms.Prim<int>.Execute(G);
-                break;
-            case MazeGenerator.Algorithm.RecursiveDivision:
-                //G = 
-                Algorithms.RecursiveDivision<int>.Execute(G);
-                break;
-            case MazeGenerator.Algorithm.Sidewinder:
-                //G = 
-                Algorithms.Sidewinder<int>.Execute(G);
-                break;
-            case MazeGenerator.Algorithm.Wilson:
-                //G = 
-                Algorithms.Wilson<int>.Execute(G);
-                break;           
-        }
-    }
+    public void executeAlgorithm() => MazeGenerator.AlgorithmMap[generationAlgorithm](G);
 
 }
