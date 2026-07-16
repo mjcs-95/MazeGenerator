@@ -1,137 +1,139 @@
-﻿using System.Text;
-using UnityEngine; //@Application
+﻿using System;
+using System.Globalization;
+using System.IO;
+using System.Numerics;
+using System.Text;
 
-public class ExportToOBj<T> where T : System.IComparable<T> {
-    // Start is called before the first frame update
-    public enum Face { N, S, E, W, F, C }
+public class ExportToOBj<T> where T : IComparable<T>
+{
+    private enum Face { Floor, North, South, East, West, Ceiling }
+    private readonly string outputPath;
+    private readonly StringBuilder sb;
 
-    StringBuilder sb;
-    System.Numerics.Vector3[] V;
-    System.Numerics.Vector3 n;
-
-
-    //Wall wdith != 0
-    //float x_acum;
-    //float y_acum;
-    float xwidth; 
-    float ywidth;
-    float scale;
-    /*
-    //Multiple floor 
-    float z_acum = 0;
-    float z_height = 0;
-    float x_width = 0;
-    public ExportToOBj() {
-        sb = new StringBuilder();
-        V = new System.Numerics.Vector3[8];
-        n = System.Numerics.Vector3.Zero;
-        pos = new byte[6, 4] {
-            { 0,1,2,3 },    //0 - Floor
-            { 2,3,6,7 },    //1 - North
-            { 0,1,4,5 },    //2 - South
-            { 1,3,5,7 },    //3 - East
-            { 0,2,4,6 },    //4 - West
-            { 4,5,6,7 }     //5 - Ceil
-        };
-        x_acum = 0;
-        y_acum = 0;
-    }
-*/
-
-    byte[,] pos;
-    float xsize, ysize;
-
-    public ExportToOBj(float scale_ = 1, float xwidth_ = 0, float ywidth_ = 0) 
+    public ExportToOBj(string path)
     {
+        outputPath = Path.Combine(path, "Resources", "objeto1.obj");
         sb = new StringBuilder();
-        V = new System.Numerics.Vector3[8];
-        n = System.Numerics.Vector3.Zero;
-        pos = new byte[6, 4] 
+    }
+
+    public void GenerateObj(MazeGraph<T> graph, bool ceil = false)
+    {
+        if(graph is null)
+            throw new ArgumentNullException(nameof(graph));
+
+        string directory = Path.GetDirectoryName(outputPath);
+        if (!string.IsNullOrEmpty(directory))
+            Directory.CreateDirectory(directory);
+
+        using (StreamWriter file = new StreamWriter(outputPath))
         {
-            { 0,1,2,3 },    //0 - Floor
-            { 2,3,6,7 },    //1 - North
-            { 0,1,4,5 },    //2 - South
-            { 1,3,5,7 },    //3 - East
-            { 0,2,4,6 },    //4 - West
-            { 4,5,6,7 }     //5 - Ceil
-        };
-        scale = scale_;
-        xwidth = xwidth_;
-        ywidth = ywidth_;
-        //x_acum = 0;
-        //y_acum = 0;
-    }
-
-
-    public void GenerateObj(MazeGraph<T> G, bool ceil = false) 
-    {
-        xsize = G.Rows;
-        ysize = G.Cols;
-        using (System.IO.StreamWriter file = new System.IO.StreamWriter(@Application.dataPath+"/Resources/objeto1.obj")) {
-            for (int i = 0; i < G.Rows; ++i)
-                for (int j = 0; j < G.Cols; ++j) {
+            for (int i = 0; i < graph.Rows; ++i)
+            {
+                for (int j = 0; j < graph.Cols; ++j)
+                {
                     sb.Clear();
-                    V = new System.Numerics.Vector3[]{
-                        new System.Numerics.Vector3(i  ,j  , 0),
-                        new System.Numerics.Vector3(i  ,j+1, 0),
-                        new System.Numerics.Vector3(i+1,j  , 0),
-                        new System.Numerics.Vector3(i+1,j+1, 0),
-                        new System.Numerics.Vector3(i,  j  , 1),
-                        new System.Numerics.Vector3(i,  j+1, 1),
-                        new System.Numerics.Vector3(i+1,j  , 1),
-                        new System.Numerics.Vector3(i+1,j+1, 1)
+                    Vector3[] vertices = new Vector3[8]{
+                        new(i,     j,     0),
+                        new(i,     j + 1, 0),
+                        new(i + 1, j,     0),
+                        new(i + 1, j + 1, 0),
+                        new(i,     j,     1),
+                        new(i,     j + 1, 1),
+                        new(i + 1, j,     1),
+                        new(i + 1, j + 1, 1)
                     };
-                    WriteWall(V, 0);
-                    if (!G.HasEdge(G.GetNode(i, j), G.GetNode(i + 1, j)) || i == G.Rows - 1 ) { WriteWall(V, 1); }
-                    if (!G.HasEdge(G.GetNode(i, j), G.GetNode(i - 1, j)) || i == 0          ) { WriteWall(V, 2); }
-                    if (!G.HasEdge(G.GetNode(i, j), G.GetNode(i, j + 1)) || j == G.Cols - 1 ) { WriteWall(V, 3); }
-                    if (!G.HasEdge(G.GetNode(i, j), G.GetNode(i, j - 1)) || j == 0          ) { WriteWall(V, 4); }
-                    if (ceil) { WriteWall(V, 5); }
+
+                    var currentNode = graph.GetNode(i, j);
+
+                    WriteWall(vertices, Face.Floor);
+                    if (i == graph.Rows - 1 || !graph.HasEdge(currentNode, graph.GetNode(i + 1, j)))
+                        WriteWall(vertices, Face.North);
+                    
+                    if (i == 0              || !graph.HasEdge(currentNode, graph.GetNode(i - 1, j)))
+                        WriteWall(vertices, Face.South);
+                    
+                    if (j == graph.Cols - 1 || !graph.HasEdge(currentNode, graph.GetNode(i, j + 1)))
+                        WriteWall(vertices, Face.East);
+                    
+                    if (j == 0              || !graph.HasEdge(currentNode, graph.GetNode(i, j - 1)))
+                        WriteWall(vertices, Face.West);
+                    
+                    if (ceil)
+                        WriteWall(vertices, Face.Ceiling);
+
                     file.Write(sb.ToString());
                 }
+            }
         }
     }
 
-    public System.Numerics.Vector3 CalculateTriangleNormal(System.Numerics.Vector3 v1, System.Numerics.Vector3 v2, System.Numerics.Vector3 v3) 
+    private static Vector3 CalculateTriangleNormal(Vector3 firstVertex, Vector3 secondVertex, Vector3 thirdVertex)
     {
-        System.Numerics.Vector3 a = v2 - v1;
-        System.Numerics.Vector3 b = v3 - v1;
-        a = System.Numerics.Vector3.Cross(a, b);
-        return System.Numerics.Vector3.Normalize(a);
+        Vector3 firstEdge = secondVertex - firstVertex;
+        Vector3 secondEdge = thirdVertex - firstVertex;
+        Vector3 normal = Vector3.Cross(firstEdge, secondEdge);
+
+        if (normal.LengthSquared() <= 1e-12f)
+            throw new ArgumentException("Degenerated triangle.");
+
+        return Vector3.Normalize(normal);
     }
-        
+
+    private void AppendNormalToObj(Vector3 normal) => sb.AppendFormat(CultureInfo.InvariantCulture, "vn {0} {1} {2}\n", normal.X, normal.Z, normal.Y);
+
     private const string v_String = "v {0} {2} {1} \n";
     private const string vtString = "vt {0} {1}  \n";
-    private const string vnString = "vn {0} {2} {1} \n";
-    private const string fString1 = "f -4/-4/-1 -3/-3/-1 -2/-2/-1  \n";
-    private const string fString2 = "f -3/-3/-1 -1/-1/-1 -2/-2/-1  \n";
-    private const string fString12 ="f -4/-4/-1 -2/-2/-1 -3/-3/-1  \n";
-    private const string fString22 ="f -3/-3/-1 -2/-2/-1 -1/-1/-1  \n";
-
-    private void WriteWall(System.Numerics.Vector3[] V, int f)
+    private void AppendVertexAndUV(Vector3 vertex, Face face)
     {
-        for (int k = 0; k < 4; ++k) 
-        {
-            sb.Append(string.Format(v_String, V[pos[f,k]].X, V[pos[f, k]].Y, V[pos[f, k]].Z));
-            if (f == 0 || f == 5)
-                sb.Append(string.Format(vtString, V[pos[f, k]].X, V[pos[f, k]].Y));
-            else if (f == 1 || f == 2)
-                sb.Append(string.Format(vtString, V[pos[f, k]].Y, V[pos[f, k]].Z));
-            else if (f == 3 || f == 4)
-                sb.Append(string.Format(vtString, V[pos[f, k]].X, V[pos[f, k]].Z));
-        }
-        n = CalculateTriangleNormal(V[pos[f,0]], V[pos[f,1]], V[pos[f,2]]);
-        sb.Append(string.Format(vnString, n.X, n.Y, n.Z));
-        sb.Append(fString1);
-        n = -n;
-        sb.Append(string.Format(vnString, n.X, n.Y, n.Z));
-        sb.Append(fString12);
+        sb.AppendFormat(CultureInfo.InvariantCulture, v_String, vertex.X, vertex.Y, vertex.Z);
 
-        n = CalculateTriangleNormal(V[pos[f,1]], V[pos[f,3]], V[pos[f,2]]);
-        sb.Append(string.Format(vnString, n.X, n.Y, n.Z));
-        sb.Append(fString2);
-        n = -n;
-        sb.Append(string.Format(vnString, n.X, n.Y, n.Z));
-        sb.Append(fString22);
+        if (face == Face.Floor || face == Face.Ceiling)
+            sb.AppendFormat(CultureInfo.InvariantCulture, vtString, vertex.X, vertex.Y);
+        else if (face == Face.North || face == Face.South)
+            sb.AppendFormat(CultureInfo.InvariantCulture, vtString, vertex.Y, vertex.Z);
+        else
+            sb.AppendFormat(CultureInfo.InvariantCulture, vtString, vertex.X, vertex.Z);
+    }
+
+    private const string ObjFrontFirstTriangle = "f -4/-4/-1 -3/-3/-1 -2/-2/-1  \n";
+    private const string ObjFrontSecondTriangle = "f -3/-3/-1 -1/-1/-1 -2/-2/-1  \n";
+    private const string ObjBackFirstTriangle = "f -4/-4/-1 -2/-2/-1 -3/-3/-1  \n";
+    private const string ObjBackSecondTriangle = "f -3/-3/-1 -2/-2/-1 -1/-1/-1  \n";
+
+    private static readonly byte[,] FaceVertexIndices =
+    {
+        { 0, 1, 2, 3 },     //0 - Floor
+        { 2, 3, 6, 7 },     //1 - North
+        { 0, 1, 4, 5 },     //2 - South
+        { 1, 3, 5, 7 },     //3 - East
+        { 0, 2, 4, 6 },     //4 - West
+        { 4, 5, 6, 7 }      //5 - Ceil
+    };
+
+    private void WriteWall(Vector3[] vertices, Face face)
+    {
+        int f = (int)face;
+
+        var v0 = vertices[FaceVertexIndices[f, 0]];
+        var v1 = vertices[FaceVertexIndices[f, 1]];
+        var v2 = vertices[FaceVertexIndices[f, 2]];
+        var v3 = vertices[FaceVertexIndices[f, 3]];
+
+        AppendVertexAndUV(v0, face);
+        AppendVertexAndUV(v1, face);
+        AppendVertexAndUV(v2, face);
+        AppendVertexAndUV(v3, face);
+
+        Vector3 n = CalculateTriangleNormal(v0, v1, v2);
+        AppendNormalToObj(n);  
+        sb.Append(ObjFrontFirstTriangle);
+        AppendNormalToObj(-n); 
+        sb.Append(ObjBackFirstTriangle);
+
+        n = CalculateTriangleNormal(v1, v3, v2);
+        AppendNormalToObj(n);  
+        sb.Append(ObjFrontSecondTriangle);
+        AppendNormalToObj(-n); 
+        sb.Append(ObjBackSecondTriangle);
     }
 }
