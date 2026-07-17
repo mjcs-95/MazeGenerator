@@ -1,153 +1,189 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
+using System.IO;
 using System.Text;
 using UnityEngine;
+using Debug = UnityEngine.Debug;
 
 public class StatComparison<T> where T : IComparable<T> 
 {
-    MazeGraph<int> G;
-    public MazeGenerator.Algorithm generationAlgorithm;
+    MazeGraph<int> graph;
 
+    private string DataPath;
 
-    public StatComparison() {}
-
-    //Deadends
-    private int deadEnds(MazeGraph<T> g)
+    public readonly struct MazeStats
     {
-        int deadends = 0;
-        for (int i = 0; i < g.Rows; ++i)
-            for (int j = 0; j < g.Cols - 1; ++j)
-                if (g.ConnectedNeighbors(i, j).Count == 1)
-                    ++deadends;
-        return deadends;
+        public float DeadEnds { get; }
+        public float Intersections { get; }
+        public float Directness { get; }
+        public float Twistiness { get; }
+
+        public MazeStats(float deadEnds, float intersections, float directness, float twistiness)
+        {
+            DeadEnds = deadEnds;
+            Intersections = intersections;
+            Directness = directness;
+            Twistiness = twistiness;
+        }
     }
 
-    public float deadendsPercentage(MazeGraph<T> g) 
-    { 
-        return 100.0f * deadEnds(g) / (g.Rows * g.Cols); 
+    public StatComparison(string path) {
+        DataPath = path;
     }
 
-    //interSections
-    private int interSections(MazeGraph<T> g) 
+    public MazeGraph<int> executeAlgorithm(MazeGenerator.Algorithm generationAlgorithm, MazeGraph<int> inputGraph) => MazeGenerator.AlgorithmMap[generationAlgorithm](inputGraph);
+    
+    private float CalculatePercentage(int count, int total) => total > 0 ? 100.0f * count / total : 0.0f;
+
+    private MazeStats AnalyzeMaze(MazeGraph<T> inputGraph)
     {
-        int intersections = 0;
-        for (int i = 0; i < g.Rows; ++i)
-            for (int j = 0; j < g.Cols - 1; ++j)
-                if (2 < g.ConnectedNeighbors(i, j).Count)
-                    ++intersections;
-        return intersections;
+        int deadEndsCount = 0;
+        int intersectionsCount = 0;
+        int directCount = 0;
+        int twistsCount = 0;
+
+        int rows = inputGraph.Rows;
+        int cols = inputGraph.Cols;
+        for (int i = 0; i < rows; ++i)
+        {
+            for (int j = 0; j < cols; ++j)
+            {
+                int current = inputGraph.GetNode(i, j);
+
+                bool n = i < rows - 1 && inputGraph.HasEdge(current, current + cols);
+                bool s = i > 0        && inputGraph.HasEdge(current, current - cols);
+                bool e = j < cols - 1 && inputGraph.HasEdge(current, current + 1);
+                bool w = j > 0        && inputGraph.HasEdge(current, current - 1);
+
+                int connectedCount = (n ? 1 : 0) + (s ? 1 : 0) + (e ? 1 : 0) + (w ? 1 : 0);
+
+                if (connectedCount == 1)
+                    ++deadEndsCount;
+                else if (connectedCount > 2)
+                    ++intersectionsCount;
+
+                if ((n == s) && (w == e) && (n != e))
+                    ++directCount;
+
+                if ((n || s) && (e || w) && !(n == s && e == w))
+                    ++twistsCount;
+            }
+        }
+
+        int totalVertices = inputGraph.NumVert;
+        return new MazeStats(
+            CalculatePercentage(deadEndsCount, totalVertices),
+            CalculatePercentage(intersectionsCount, totalVertices),
+            CalculatePercentage(directCount, totalVertices),
+            CalculatePercentage(twistsCount, totalVertices)
+        );
     }
 
-    public float interSectionsPercentage(MazeGraph<T> g) 
+
+    private readonly struct PathNode
     {
-        return 100.0f * interSections(g) / (g.Rows * g.Cols);
+        public readonly int NodeId;
+        public readonly int Cost;
+        public PathNode(int nodeId, int cost)
+        {
+            NodeId = nodeId;
+            Cost = cost;
+        }
     }
 
-    //LongestPath
-    public float LongestPath(MazeGraph<T> G) 
+    public float LongestPath(MazeGraph<T> inputGraph)
     {
-        bool[] visited;
-        KeyValuePair<KeyValuePair<int, int>, int> LP = new KeyValuePair<KeyValuePair<int, int>, int>();
-        List<KeyValuePair<int, int>> adycost = new List<KeyValuePair<int, int>>();
-        for (int i = 0; i < G.Rows; ++i)
-            for (int j = 0; j < G.Rows; ++j) {
-                visited = new bool[G.NumVert];
-                visited[G.GetNode(i, j)] = true;
-                foreach (var n in G.ConnectedNeighbors(i, j))
-                    adycost.Add(new KeyValuePair<int, int>(n, 1));
-                while (adycost.Count != 0) 
+
+        if (inputGraph == null) 
+            return 0.0f;
+
+        int numVert = inputGraph.NumVert;
+        int rows = inputGraph.Rows;
+        int cols = inputGraph.Cols;
+
+        bool[] visited = new bool[numVert];
+        int maxPathLength = 0;
+        Queue<PathNode> queue = new Queue<PathNode>(numVert);
+
+        for (int i = 0; i < rows; ++i)
+        {
+            for (int j = 0; j < cols; ++j)
+            {
+                Array.Clear(visited, 0, numVert);
+                queue.Clear();
+
+                int startNode = inputGraph.GetNode(i, j);
+                visited[inputGraph.GetNode(i, j)] = true;
+
+                foreach (var neighbor in inputGraph.ConnectedNeighbors(i, j))
+                    queue.Enqueue(new PathNode(neighbor, 1));
+
+                while (queue.Count != 0)
                 {
-                    KeyValuePair<int, int> c = adycost[0];
-                    visited[c.Key] = true;
-                    if (LP.Value < c.Value)
-                        LP = new KeyValuePair<KeyValuePair<int, int>, int>(new KeyValuePair<int, int>(G.GetNode(i, j), c.Key), c.Value);
+                    PathNode current = queue.Dequeue() ;
+                    visited[current.NodeId] = true;
 
-                    var coord = G.GetCoord(c.Key);
-                    foreach (var n in G.ConnectedNeighbors(coord.Row, coord.Col))
-                        if (!visited[n])
-                            adycost.Add(new KeyValuePair<int, int>(n, c.Value + 1));
+                    if (maxPathLength < current.Cost)
+                        maxPathLength = current.Cost;
 
-                    adycost.RemoveAt(0);
+                    var coord = inputGraph.GetCoord(current.NodeId);
+                    foreach (var neighbor in inputGraph.ConnectedNeighbors(coord.Row, coord.Col))
+                    {
+                        if (!visited[neighbor])
+                            queue.Enqueue(new PathNode(neighbor, current.Cost + 1));
+                    }
                 }
             }
-        return 100.0f * LP.Value / (G.Rows * G.Cols);
-    }
-
-
-    //Directness
-    public float Directness(MazeGraph<T> g) {
-        int direct = 0;
-        for (int i = 0; i < g.Rows; ++i) 
-            for (int j = 0; j < g.Rows; ++j) 
-            {
-                bool n = g.HasEdge(g.GetNode(i, j), g.GetNode(i + 1, j));
-                bool s = g.HasEdge(g.GetNode(i, j), g.GetNode(i - 1, j));
-                bool e = g.HasEdge(g.GetNode(i, j), g.GetNode(i, j + 1));
-                bool w = g.HasEdge(g.GetNode(i, j), g.GetNode(i, j - 1));
-                if ( ((n && s) && !w && !e) || ((e && w) && !n && !s))
-                    ++direct;
-            }
-        return 100.0f * direct / (g.Rows * g.Cols);
-    }
-
-    //Twistiness
-    public float Twistiness(MazeGraph<T> g) 
-    {
-        int twists = 0;
-        for (int i = 0; i < g.Rows; ++i)
-            for (int j = 0; j < g.Rows; ++j) {
-                bool n = g.HasEdge(g.GetNode(i, j), g.GetNode(i + 1, j));
-                bool s = g.HasEdge(g.GetNode(i, j), g.GetNode(i - 1, j));
-                bool e = g.HasEdge(g.GetNode(i, j), g.GetNode(i, j + 1));
-                bool w = g.HasEdge(g.GetNode(i, j), g.GetNode(i, j - 1));
-                if ((n & !s & (e || w)) || (!n & s & (e || w)) || (!w & e & (n || s)) || (w & !e & (n || s)) )
-                    ++twists;
-            }
-        return 100.0f * twists / (g.Rows * g.Cols);
+        }
+        return CalculatePercentage(maxPathLength, numVert);
     }
 
     public void executeCharacteristicsAnalysis() {
-        using (System.IO.StreamWriter file = new System.IO.StreamWriter(@Application.dataPath + "/analisis.csv")) 
+        string filePath = Path.Combine(DataPath, "analisis.csv");
+
+        using (StreamWriter file = new StreamWriter(filePath, false, Encoding.UTF8)) 
         {
-            StatComparison<int> Test = new StatComparison<int>();
+            StatComparison<int> Test = new StatComparison<int>(DataPath);
+            Stopwatch stopwatch = new Stopwatch();
             StringBuilder sb = new StringBuilder();
             sb.Clear();
             sb.Append("Algorithm,DeadEnds,Intersection,LongestPath,Directness,Twistiness\n");
             file.Write(sb.ToString());
-            int rows = 10;
-            int cols = 10;
-            for (int i = 0; i < 100; i++) 
+            int rows = 30;
+            int cols = 30;
+            var algorithms = Enum.GetValues(typeof(MazeGenerator.Algorithm));
+            for (int i = 0; i < 100; i++)
             {
-                TimeSpan stop;
-                TimeSpan start = new TimeSpan(DateTime.Now.Ticks);
-                // codigo a medir
-                foreach (MazeGenerator.Algorithm it in Enum.GetValues(typeof(MazeGenerator.Algorithm))) 
+                stopwatch.Restart();
+                sb.Clear();
+                foreach (MazeGenerator.Algorithm generationAlgorithm in algorithms) 
                 {
-                    sb.Clear();
-                    G = MazeGraph<int>.CreateNoWallsGraph4(rows, cols);
-                    var generationAlgorithm = it;
-                    executeAlgorithm();
-                    sb.Append(it + ",");
-                    sb.Append(Test.deadendsPercentage(G).ToString("00.000", CultureInfo.InvariantCulture) + ",");
-                    sb.Append(Test.interSectionsPercentage(G).ToString("00.000", CultureInfo.InvariantCulture) + ",");
-                    sb.Append(Test.LongestPath(G).ToString("00.000", CultureInfo.InvariantCulture) + ",");
-                    sb.Append(Test.Directness(G).ToString("00.000", CultureInfo.InvariantCulture) + ",");
-                    sb.Append(Test.Twistiness(G).ToString("00.000", CultureInfo.InvariantCulture) + "\n");
-                    file.Write(sb.ToString());
-
-                }
-                stop = new TimeSpan(DateTime.Now.Ticks);
-                Debug.Log("Iteracion " + i + " , Tiempo(s) : " + stop.Subtract(start).TotalMilliseconds / 1000.0f);
+                    graph = MazeGraph<int>.CreateNoWallsGraph4(rows, cols);
+                    graph = executeAlgorithm(generationAlgorithm, graph);
+                    sb.Append(generationAlgorithm + ",");
+                    var mazeStats = Test.AnalyzeMaze(graph);
+                    sb.Append(mazeStats.DeadEnds.ToString("00.000", CultureInfo.InvariantCulture) + ",");
+                    sb.Append(mazeStats.Intersections.ToString("00.000", CultureInfo.InvariantCulture) + ",");
+                    sb.Append(Test.LongestPath(graph).ToString("00.000", CultureInfo.InvariantCulture) + ",");
+                    sb.Append(mazeStats.Directness.ToString("00.000", CultureInfo.InvariantCulture) + ",");
+                    sb.Append(mazeStats.Twistiness.ToString("00.000", CultureInfo.InvariantCulture) + "\n");
+                } 
+                file.Write(sb.ToString());
+                stopwatch.Stop();
+                Debug.Log($"Iteracion {i} , Tiempo(s) : {stopwatch.Elapsed.TotalSeconds:F4}");
             }
         }
     }
 
     public void TimeComparison() 
     {
-        using (System.IO.StreamWriter file = new System.IO.StreamWriter(@Application.dataPath + "/Tiempos.csv")) 
+        string filePath = Path.Combine(DataPath, "Tiempos.csv");
+        using (StreamWriter file = new StreamWriter(filePath, false, Encoding.UTF8))
         {
-            StatComparison<int> Test = new StatComparison<int>();
+            var algorithms = (MazeGenerator.Algorithm[])Enum.GetValues(typeof(MazeGenerator.Algorithm));
+            StatComparison<int> Test = new StatComparison<int>(DataPath);
             StringBuilder sb = new StringBuilder();
             sb.Clear();
             sb.Append("Algorithm,Size,Time(ms)\n");
@@ -155,32 +191,26 @@ public class StatComparison<T> where T : IComparable<T>
             int size = 50;
             int maxsize = 100;
             int inc = 10;
-            //int rows = size;
-            //int cols = size;
-            TimeSpan stop;
-            TimeSpan start;
-            while (size <= maxsize) 
+            Stopwatch stopwatch = new Stopwatch();
+
+            for (int i = size; i < maxsize; i += inc)
             {
-                G = MazeGraph<int>.CreateNoWallsGraph4(size, size);
-                for (int i = 0; i < 10; i++)
-                    foreach (MazeGenerator.Algorithm it in Enum.GetValues(typeof(MazeGenerator.Algorithm))) 
-                    {
-                        sb.Clear();                        
-                        generationAlgorithm = it;
+                string sizeString = $"{i}x{i}";
+                foreach (MazeGenerator.Algorithm generationAlgorithm in algorithms)
+                {
+                    sb.Clear();
+                    graph = MazeGraph<int>.CreateNoWallsGraph4(size, size);
+                    stopwatch.Restart();
+                    executeAlgorithm(generationAlgorithm, graph);
+                    stopwatch.Stop();
 
-                        start = new TimeSpan(DateTime.Now.Ticks);
-                        executeAlgorithm();
-                        stop = new TimeSpan(DateTime.Now.Ticks);
-
-                        sb.Append(it + "," + (size+"x"+size) + "," + stop.Subtract(start).TotalMilliseconds.ToString("00.000", CultureInfo.InvariantCulture) + "\n");
-                        file.Write(sb.ToString());
-                    }
-                size = size + inc;
+                    sb.Append(generationAlgorithm).Append(",")
+                        .Append(sizeString).Append(",")
+                        .Append(stopwatch.Elapsed.TotalMilliseconds.ToString("00.000", CultureInfo.InvariantCulture))
+                        .Append("\n");
+                    file.Write(sb.ToString());
+                }
             }
         }
-
     }
-
-    public void executeAlgorithm() => MazeGenerator.AlgorithmMap[generationAlgorithm](G);
-
 }
